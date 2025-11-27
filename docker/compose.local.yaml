@@ -1,0 +1,89 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: localpw
+      POSTGRES_DB: registry
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
+      QDRANT__SERVICE__GRPC_PORT: 6334
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: localminio
+      MINIO_ROOT_PASSWORD: localminio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  mcp:
+    build: ../mcp-server
+    environment:
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+      LLC_QDRANT_URL: http://qdrant:6333
+      LLC_MINIO_ENDPOINT: http://minio:9000
+      LLC_MINIO_ACCESS_KEY: localminio
+      LLC_MINIO_SECRET_KEY: localminio123
+      LLC_NOMIC_API_KEY: ${NOMIC_API_KEY:-}
+      LLC_EMBEDDER_PROVIDER: ${LLC_EMBEDDER_PROVIDER:-nomic}
+      LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
+      LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
+      LLC_MCP_TOKEN_PATH: /app/docker/mcp_token.txt
+    ports:
+      - "7801:7801"
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+    volumes:
+      - ../docker:/app/docker:ro
+      - ../manifests:/app/manifests:ro
+
+  workers:
+    build: ../workers
+    environment:
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+      LLC_QDRANT_URL: http://qdrant:6333
+      LLC_MINIO_ENDPOINT: http://minio:9000
+      LLC_MINIO_ACCESS_KEY: localminio
+      LLC_MINIO_SECRET_KEY: localminio123
+      LLC_NOMIC_API_KEY: ${NOMIC_API_KEY:-}
+      LLC_EMBEDDER_PROVIDER: ${LLC_EMBEDDER_PROVIDER:-nomic}
+      LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
+      LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
+      WORKER_POLL_INTERVAL: 5
+    ports:
+      - "9105:9105"
+    depends_on:
+      - postgres
+      - qdrant
+      - minio
+
+volumes:
+  pg_data:
+  qdrant_data:
+  minio_data:

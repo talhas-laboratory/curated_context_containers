@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  background-color: #fafaf8;
+  color: #1a1a1a;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+/* Aurora Background Layer */
+.aurora-bg {
+  background: 
+    radial-gradient(at 0% 0%, rgba(239, 246, 255, 0.8) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(240, 253, 250, 0.8) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(238, 242, 255, 0.8) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(253, 242, 248, 0.6) 0px, transparent 50%),
+    radial-gradient(at 100% 50%, rgba(236, 254, 255, 0.6) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(238, 242, 255, 0.8) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(239, 246, 255, 0.8) 0px, transparent 50%);
+  background-size: 150% 150%;
+  animation: aurora 20s ease infinite alternate;
+  filter: blur(60px);
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-glass-surface backdrop-blur-xl border border-glass-border shadow-glass;
+  }
+  
+  .glass-panel-hover {
+    @apply hover:bg-white/80 hover:border-white/60 hover:shadow-glass-hover transition-all duration-300 ease-out;
+  }
+
+  .glass-text-shadow {
+    text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+}
+
+button, input {
+  font: inherit;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

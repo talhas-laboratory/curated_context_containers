@@ -1,0 +1,34 @@
+{
+  "q1_complementary_pairs": {
+    "relevant_docs": ["color-theory"],
+    "notes": "Tests basic complementary pairs and their effect on contrast."
+  },
+  "q2_warm_cool_mood": {
+    "relevant_docs": ["color-theory"],
+    "notes": "Warm–cool, value design, calm vs agitated moods."
+  },
+  "q3_kandinsky_inner_sound": {
+    "relevant_docs": ["blaue-reiter"],
+    "notes": "Kandinsky, inner sound, spiritual role of color."
+  },
+  "q4_marc_animal_colors": {
+    "relevant_docs": ["blaue-reiter"],
+    "notes": "Franz Marc's color symbolism for animals."
+  },
+  "q5_broken_color_and_impasto": {
+    "relevant_docs": ["brushwork"],
+    "notes": "Expressionist brushwork: broken color, impasto, vibrating surface."
+  },
+  "q6_flat_graphic_shapes_avoid": {
+    "relevant_docs": ["brushwork"],
+    "notes": "Flat graphic shapes by avoiding impasto, dry brush, sgraffito."
+  },
+  "q7_color_brushwork_combined_mood": {
+    "relevant_docs": ["color-theory", "brushwork"],
+    "notes": "Joint question: color harmonies (color-theory) + brushwork (brushwork) for calm vs anxiety."
+  },
+  "q8_spiritual_vs_material_color_use": {
+    "relevant_docs": ["blaue-reiter", "color-theory"],
+    "notes": "Compare spiritual color use (blaue-reiter) with technical color theory (color-theory)."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "local-latent-containers": {
+      "command": "python",
+      "args": [
+        "-m",
+        "llc_mcp_gateway.server"
+      ],
+      "env": {
+        "LLC_BASE_URL": "http://localhost:7801",
+        "LLC_MCP_TOKEN": "REPLACE_WITH_TOKEN_FROM_docker_mcp_token_txt"
+      }
+    }
+  }
+}
+

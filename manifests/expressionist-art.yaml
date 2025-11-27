@@ -1,0 +1,39 @@
+id: "expressionist-art"
+name: "Expressionist Art"
+theme: "German Expressionism"
+description: "Seed container capturing Expressionist-era texts and PDFs for smoke tests"
+modalities: ["text", "pdf", "image"]
+embedder: "google-gemma3-text"
+embedder_version: "1.0.0"
+dims: 768
+retrieval:
+  mode_default: "hybrid"
+  fusion:
+    method: "rrf"
+    rank_constant: 60
+  freshness:
+    enabled: true
+    decay_lambda: 0.02
+  rerank:
+    enabled: false
+    top_k_in: 50
+    top_k_out: 10
+chunker:
+  mode: "semantic_then_fallback"
+  size: 600
+  overlap: 0.12
+pdf:
+  render_dpi: 150
+  max_pages: 250
+image:
+  thumbnail_max_edge: 2048
+  compress_quality: 90
+web:
+  javascript: false
+  sanitize_rules: ["strip_nav", "strip_ads"]
+dedup:
+  semantic_threshold: 0.92
+acl:
+  roles:
+    owner: ["local:you"]
+    reader: ["agent:claude", "agent:chatgpt", "agent:local"]

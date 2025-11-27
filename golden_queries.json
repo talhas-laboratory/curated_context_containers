@@ -1,0 +1,72 @@
+[
+  {
+    "id": "q1_complementary_pairs",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "complementary contrast color wheel blue orange red green yellow violet expressionist",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q2_warm_cool_mood",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "warm cool contrast advance recede",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q3_kandinsky_inner_sound",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "colors have inner sounds vibrations affect the human soul Kandinsky",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q4_marc_animal_colors",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "Franz Marc color symbolism blue spirituality yellow joy red violence",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q5_broken_color_and_impasto",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "impasto thick strokes broken color rough brushwork surface",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q6_flat_graphic_shapes_avoid",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "impasto thick strokes stand out from canvas broken color visible brushwork",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q7_color_brushwork_combined_mood",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "color harmonies and brushwork impasto broken color to express calm or anxiety",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q8_spiritual_vs_material_color_use",
+    "mode": "hybrid",
+    "k": 10,
+    "query": "Der Blaue Reiter spiritual color inner sound toward blue calm spiritual abstraction",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q9_pdf_color_brushwork",
+    "mode": "hybrid",
+    "k": 5,
+    "query": "golden pdf content color theory and brushwork",
+    "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q10_latency_empty_hit",
+    "mode": "hybrid",
+    "k": 5,
+    "query": "expressionist color theory hue saturation value",
+    "container": "00000000-0000-0000-0000-000000000001"
+  }
+]

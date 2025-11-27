@@ -1,0 +1,104 @@
+Local Latent Containers — Comprehensive Overview
+================================================
+
+1. Mission & Purpose
+--------------------
+- **Goal:** Deliver calm, deterministic knowledge retrieval through “theme-scoped” containers that live entirely on a user’s MacBook. Retrieval should feel like memory recall, not chatty RAG.
+- **Problem:** Existing vector DB tooling is noisy, cloud-tethered, and geared toward general-purpose search. Researchers and curators want contextual recall with provenance, privacy, and predictable latency.
+- **Scope (Phase 1):** Text/PDF ingestion, hybrid (vector+BM25) search, deterministic MCP API, baseline runbooks/tests.
+
+2. Product Principles & Personas
+--------------------------------
+- **Principles:** Invisible intelligence, themed coherence, provenance as truth, deterministic retrieval, local-first privacy, calm interface (monochrome chrome, IKB blue for data orbs only).
+- **Personas:**
+  - Researcher: needs <900 ms search over curated PDFs/notes with provenance.
+  - Curator: assembles multimodal collections without low-level ops.
+  - Developer: consumes MCP tools from agents/clients without leaking data.
+- **Key flows:** create container → ingest sources → search → inspect result modal with diagnostics.
+
+3. Architecture (SYSTEM.md)
+---------------------------
+- **Surface:** FastAPI server exposing `/v1/containers/*` REST endpoints plus MCP tool descriptors. Contracts live in `architecture/API_CONTRACTS.md`.
+- **Core services:** SearchService (hybrid pipeline), IngestService (validates + enqueues jobs), ManifestService (policy/ACL), DiagnosticsService (stage timings), AdminService (future refresh/export).
+- **Adapters:** PostgreSQL (registry, BM25, queue, cache), Qdrant (vectors per container + modality), MinIO (object storage), embedding adapter (`nomic-embed-multimodal-7b`).
+- **Workers:** Postgres-native queue (ADR-001) with `FOR UPDATE SKIP LOCKED`, chunk/extract/embed pipelines, heartbeats, retries, DLQ semantics.
+- **Deployment:** Docker Compose; only MCP server exposes localhost port 7801. Other services stay on private network `latent-net`.
+
+4. Data Model Highlights (DATA_MODEL.md)
+---------------------------------------
+- `containers` store manifest+policy, allowed modalities, embedder metadata, stats JSON.
+- `documents` mirror ingested sources; `chunks` are atomic retrieval rows with provenance, `tsv` (generated) for BM25, dedup references, metadata.
+- `jobs` + `job_events` power ingestion queue with status/retry tracking.
+- `embedding_cache` stores hashed embeddings (hash+model key) with TTL, enabling cache hits for repeated text.
+- Qdrant collection naming: `c_<container_uuid>_<modality>` with payload parity vs. Postgres.
+- MinIO layout: `s3://containers/{container_id}/{doc_id}/original|normalized|thumbs|pdf_pages`.
+
+5. Retrieval & Ingestion Flows
+------------------------------
+- **Ingestion:** `/v1/containers/add` → IngestService validates manifest policy (modalities, ACL, size limits) → inserts `jobs` rows → workers fetch/extract/chunk → embed (cache-aware) → persist Postgres/MinIO/Qdrant → update stats/metrics.
+- **Search:** `/v1/containers/search` orchestrates query embedding, vector + BM25 fan-out, Reciprocal Rank Fusion, dedup (cos ≥0.92), freshness boosts, optional rerank stub (ADR-002). Response envelope includes `issues`, timings, stage scores, and per-container health.
+- **Latency budgets:** Manifest-defined and enforced per request; `issues` emit `LATENCY_BUDGET_EXCEEDED` when truncated.
+
+6. Observability & SLOs
+-----------------------
+- **Targets:** P95 search <900 ms, P50 <400 ms; ingestion throughput 50k tokens/min; error rate <1%; Postgres↔Qdrant drift <5 s.
+- **Metrics:** `llc_search_requests_total{container,mode,status}`, stage latency histograms, result count histograms, ingest duration per modality, embedding cache hit/miss counters, dedup totals.
+- **Logs:** JSON Lines including `request_id`, timings, issue codes, diagnostics hash. Diagnostics optionally persisted to `diagnostics` table.
+- **Tracing:** Optional OTEL spans around embed/search/rerank; `X-Request-ID` propagation.
+
+7. Frontend & Experience Layer
+------------------------------
+- **Stack:** Next.js App Router + React Query + Tailwind/Framer; MCP client with bearer token stored via env or localStorage.
+- **Routes:** `/containers` gallery (filters, stats cards) and `/containers/[id]/search` workspace with SearchInput, Results list, DiagnosticsRail, DocumentModal. Keyboard shortcuts (`/` focus, arrow navigation, ESC) and reduced-motion variant implemented.
+- **Stories & TD:** Storybook coverage for all UI primitives; TD-001 tracks missing automated frontend tests.
+
+8. Documentation, Diary, and Single Source of Truth
+---------------------------------------------------
+- **Structure:** `single_source_of_truth/` contains INDEX, CONTEXT, PROGRESS, VISION, domain folders (architecture/, design/), work trackers, knowledge base, runbooks, diaries.
+- **Diaries:** Append-only `diary/YYYY-MM-DD.md` capturing session context, work completed, decisions, learnings, blockers, next steps, hashes.
+- **Runbooks:** `SETUP_AND_INSTALL.md` (compose + smoke + golden), `BACKUP_AND_RESTORE.md` (Postgres dump, Qdrant snapshots, MinIO mirror), `INCIDENT_RESPONSE.md` (embedding outages, latency spikes, ingestion stuck jobs).
+- **Build Plan:** `work/BUILDPLAN_EXECUTION.md` enumerates numbered sections (Preflight → Phase close-out) with checkboxes tracked chronologically.
+
+9. Phase Status & Roadmap
+-------------------------
+- **Phase 1 (Current):** MCP v1 local implementation; backend core complete, frontend wired, testing/runbooks done, metrics/observability in place; goal is deterministic single-container prototype.
+- **Phase 2 (Planned):** Multimodal expansion (image ingestion, crossmodal search), rerank adapter per ADR-002, refresh/export endpoints, rerank caching.
+- **Phase 3 (Planned):** Multi-vector embeddings, full observability dashboards, automated eval gates, production hardening (rate limits, DLQ automation, security audit).
+
+10. Key Design Decisions
+------------------------
+- **SSoT adoption:** Every agent session must read/write the `single_source_of_truth/` folder (DECISIONS.md).
+- **Three-agent system:** Orchestrator (coordination/doc), Silent Architect (backend/contracts), IKB Designer (frontend/design).
+- **Task queue (ADR-001):** Postgres-native queue for Phase 1 to keep stack lean; Celery/RQ reserved for higher-throughput phases.
+- **Rerank strategy (ADR-002, proposed):** Pluggable rerank stage with manifest/request flag, tight timeout, diagnostics, issue codes.
+- **Deterministic retrieval:** Hybrid search + optional rerank only; no generative responses in critical path.
+
+11. Tooling, Testing, and Automation
+------------------------------------
+- **Scripts:** `scripts/bootstrap_db.sh`, `scripts/compose_smoke_test.sh`, `scripts/run_golden_queries.sh --budget-ms`, `scripts/e2e_search.js` (Playwright trace).
+- **CI (2025-11-21 diary):** Workflow runs migrate → pytest+coverage → smoke → golden; uploads artifacts; E2E optional until stabilized.
+- **Tests:** Unit (adapters, chunkers, search policy/latency), contract tests (API schemas), integration test (ingest→search), golden queries enforcing latency budgets, smoke tests, Storybook for frontend.
+- **Metrics gating:** Golden runner fails if latency exceeds manifest/global budget or zero hits; diag logs capture issues for follow-up.
+
+12. Diary Mechanisms & Knowledge Capture
+----------------------------------------
+- **Diary template:** Tracks session goal, context loaded, tasks, decisions, challenges, learnings, state changes, next actions, artifacts, metrics, reflections, hashes.
+- **Knowledge base:** `knowledge/DECISIONS.md`, `knowledge/LESSONS.md`, `product_concept.md`, references; ensures institutional memory beyond diaries.
+- **Update protocol:** Agents sync CONTEXT/PROGRESS/diaries/work logs at the end of each session; hashes verify state alignment across sessions.
+
+13. Extension Playbook
+----------------------
+- **To add a new modality:** Update manifest schema + DATA_MODEL enums, add pipeline under `workers/pipelines/`, ensure Qdrant payload additions, extend SearchService filters.
+- **To enable rerank:** Implement adapter per ADR-002, wire manifest flags, add diagnostics/issue codes, extend golden queries to capture rerank timings.
+- **To scale beyond single node:** Swap Postgres queue for Celery/RQ (preserving job payload contracts), add observability dashboards, enforce rate limiting/backoff at API layer.
+
+14. Quick Start References
+--------------------------
+- **Setup:** `single_source_of_truth/runbooks/SETUP_AND_INSTALL.md`
+- **Current focus:** `single_source_of_truth/work/CURRENT_FOCUS.md`
+- **Open blockers:** `single_source_of_truth/work/BLOCKERS.md` (currently none)
+- **Golden queries & judgments:** `golden_queries.json`, `.artifacts/golden_summary.json` outputs
+- **Frontend guide:** `frontend/README.md`, `frontend_guidelines.md`
+
+This document ties together the single source of truth so new contributors can grok mission, architecture, design decisions, diary discipline, and operational scaffolding without spelunking multiple files first.
+

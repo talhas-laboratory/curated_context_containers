@@ -1,0 +1,12 @@
+{
+  "GQ-001": [
+    "doc-id-placeholder-1"
+  ],
+  "GQ-002": {
+    "doc-id-placeholder-2": 1.0,
+    "doc-id-placeholder-3": 0.5
+  },
+  "GQ-003": [
+    "doc-id-placeholder-4"
+  ]
+}

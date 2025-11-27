@@ -1,0 +1,59 @@
+[
+    {
+      "id": "q1_complementary_pairs",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "Which complementary color pairs appear on the traditional painter's color wheel and how do they affect contrast in expressionist painting?"
+    },
+    {
+      "id": "q2_warm_cool_mood",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "How can I use warm–cool contrasts and value design to create either calm or agitated moods in an expressionist canvas?"
+    },
+    {
+      "id": "q3_kandinsky_inner_sound",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "How did Wassily Kandinsky and the Blaue Reiter group think about color as an 'inner sound' or spiritual force?"
+    },
+    {
+      "id": "q4_marc_animal_colors",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "In Der Blaue Reiter paintings, how did Franz Marc use unconventional animal colors like blue horses or yellow creatures to signal different emotional or spiritual qualities?"
+    },
+    {
+      "id": "q5_broken_color_and_impasto",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "Which brushwork techniques, such as broken color or impasto, can I use to create a vibrating, restless surface in an expressionist oil painting?"
+    },
+    {
+      "id": "q6_flat_graphic_shapes_avoid",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "If I want flat, graphic color shapes with minimal visible stroke, which expressionist brushwork techniques should I avoid?"
+    },
+    {
+      "id": "q7_color_brushwork_combined_mood",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "How do color harmonies and brushwork choices work together in expressionist painting to express calm versus anxiety?"
+    },
+    {
+      "id": "q8_spiritual_vs_material_color_use",
+      "container_id": "expressionist-art",
+      "mode": "hybrid",
+      "k": 10,
+      "query": "Compare the use of color in Der Blaue Reiter's spiritual abstractions with more purely technical color theory. How do their goals differ?"
+    }
+  ]
+  

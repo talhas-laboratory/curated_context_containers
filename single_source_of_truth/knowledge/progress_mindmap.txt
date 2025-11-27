@@ -1,0 +1,45 @@
+Local Latent Containers — Progress Mindmap (2025-11-21)
+
+Sources read: single_source_of_truth/PROGRESS.md, work/BUILDPLAN_EXECUTION.md, diaries/2025-11-09.md, diaries/2025-11-20.md, diaries/2025-11-21.md, CONTEXT.md, CURRENT_FOCUS.md, TECHNICAL_DEBT.md, BLOCKERS.md, phase1_completion.md.
+Legend: [done] completed; [todo] remaining or at-risk; [watch] divergences to reconcile.
+
+Phase 1 — MCP v1 Local (goal: deterministic single-container prototype)
+  [done] Foundation & SSoT: personas, VISION/INDEX/CONTEXT/PROGRESS, diary discipline in place.
+  [done] Architecture & contracts: SYSTEM, DATA_MODEL, API_CONTRACTS, ADR-001 (Postgres queue) and rerank ADR-002 drafted.
+  [done] Backend core: FastAPI MCP endpoints implemented with auth, manifest policy enforcement, latency budgets, diagnostics/issue codes; services backed by Postgres/Qdrant/MinIO; embedding cache wired.
+  [done] Ingestion & retrieval: Text/PDF pipelines with chunking, dedup (hash+semantic), MinIO storage, Qdrant upsert; hybrid search (vector + BM25 + RRF) with stage timings and freshness boosts; rerank hook stubbed.
+  [done] Metrics/observability: Prometheus counters/histograms, structured logs, diagnostics payloads; smoke SQL asserts for chunks/cache/dedup; diagnostics rail data available.
+  [done] Automation: docker compose stabilized, Makefile targets (migrate/smoke/golden), bootstrap_db script, golden runner with latency budgets and artifact outputs, integration test (ingest→search), Playwright E2E script with trace capture.
+  [done] CI & runbooks: GitHub Actions pipeline (migrate → pytest+cov → smoke → golden; E2E optional), runbooks for setup/install, backup/restore, incident response; sample manifests and golden queries published.
+  [done] Frontend: Next.js App Router with MCP HTTP client + React Query hooks; container gallery, search workspace, diagnostics rail, document modal; keyboard shortcuts, reduced-motion variant, focus traps; Storybook stories for key components.
+  [todo] Performance & rerank: Implement rerank adapter per ADR-002, record nDCG/recall for golden set, and hit P95 <900 ms budget on measured runs.
+  [todo] Testing gaps: Frontend unit/E2E gating missing (TD-001); CI E2E currently non-blocking (TD-002); latency/error-path tests and PDF E2E scenario still outstanding.
+  [todo] Frontend quality gates: Add loading/empty/error states hardening, a11y audit, and residual keyboard/diagnostics edge cases validation.
+  [todo] Documentation alignment: CONTEXT/PROGRESS and phase1_completion contain stale notes (e.g., Celery/RQ mention, outdated progress %); recompute hash and sync with latest reality before close-out.
+  [todo] Phase close-out: Phase 1 retrospective entry, update DECISIONS/LESSONS, archive ADRs, and set Phase 2 starting line after metrics/regression baselines are captured.
+
+Execution slices (keep short to preserve context quality)
+  Slice 1 — Doc Sync & Truth Pass
+    - Reconcile PROGRESS, CONTEXT, phase1_completion, CURRENT_FOCUS; recompute hash; log diary update.
+  Slice 2 — Backend Perf & Rerank
+    - Implement rerank adapter per ADR-002; run golden queries for nDCG/recall + P95; tune budgets.
+  Slice 3 — Frontend Reliability
+    - Add frontend unit/RTL tests and MSW; harden Playwright E2E and gate CI; cover loading/error/empty and a11y/keyboard.
+  Slice 4 — Search Quality & Latency Validation
+    - Add PDF ingest→search E2E; latency/error-path tests (timeout/no_hits/rate_limit); capture baseline artifacts.
+  Slice 5 — Phase 1 Close-Out
+    - Retrospective diary; update DECISIONS/LESSONS; archive ADRs; set Phase 2 start line with metrics snapshot.
+
+Phase 2 — Multimodal + Rerank (planned)
+  [todo] Image ingestion pipeline, crossmodal search modes, rerank provider + caching, refresh/export endpoints.
+  [todo] Frontend: multi-container selector, crossmodal UI, rerank diagnostics, export/refresh flows.
+  [todo] Testing: multi-container and crossmodal golden queries, rerank quality benchmarks.
+
+Phase 3 — Multi-Vector + Observability (planned)
+  [todo] Multi-vector embeddings/router, full observability dashboards, automated eval gates, rate limiting/backoff, DLQ automation, security audit.
+
+Risks / Technical Debt / Watch items
+  [watch] Status drift across docs (PROGRESS vs diaries vs CONTEXT); resolve to avoid conflicting guidance.
+  [todo] TD-001 frontend tests absent; TD-002 E2E not gating CI.
+  [watch] Performance validation pending; rerank design not yet executed.
+  [watch] Open questions in CONTEXT (state management choice, rerank provider, container themes) still unaddressed post-implementation.
