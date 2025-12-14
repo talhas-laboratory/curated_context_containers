@@ -1,20 +1,6 @@
 """Services package for MCP server."""
 
-# Import all service modules to make them available
-from . import admin
-from . import agent_tracking
-from . import collaboration
-from . import containers
-from . import diagnostics
-from . import documents
-from . import fusion
-from . import graph
-from . import graph_nl2cypher
-from . import jobs
-from . import lifecycle
-from . import manifests
-from . import search
-
+# Avoid eager imports to prevent circular/module load issues during test discovery.
 __all__ = [
     "admin",
     "agent_tracking",
@@ -28,5 +14,5 @@ __all__ = [
     "jobs",
     "lifecycle",
     "manifests",
-    "search"
+    "search",
 ]
