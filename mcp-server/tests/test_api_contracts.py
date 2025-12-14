@@ -36,9 +36,13 @@ from app.models.documents import (
     ListDocumentsResponse,
 )
 from app.models.search import SearchRequest, SearchResponse, SearchResult
+from app.models.admin import RefreshRequest, RefreshResponse, ExportRequest, ExportResponse
 from app.services import containers as container_service
 from app.services import jobs as job_service
 from app.services import search as search_service
+from app.services import admin as admin_service
+from app.models.graph import GraphSearchRequest, GraphUpsertRequest, GraphNode, GraphEdge
+from app.core.security import verify_bearer_token
 
 
 client = TestClient(app)
@@ -52,6 +56,10 @@ SAMPLE_CONTAINER_ID = "00000000-0000-0000-0000-000000000001"
 def override_dependencies(monkeypatch):
     async def fake_session():
         yield None
+
+    # Override authentication to always succeed in tests
+    def fake_verify_bearer_token(credentials=None):
+        return True
 
     async def fake_list_response(session, request):
         return ListContainersResponse(
@@ -141,7 +149,12 @@ def override_dependencies(monkeypatch):
             issues=issues,
         )
 
+    # Override authentication to bypass token verification
+    def fake_auth():
+        return True
+    
     app.dependency_overrides[get_session] = fake_session
+    app.dependency_overrides[verify_bearer_token] = fake_auth
     monkeypatch.setattr(container_service, "list_containers_response", fake_list_response)
     monkeypatch.setattr(container_service, "describe_container_response", fake_describe_response)
     monkeypatch.setattr(job_service, "enqueue_jobs", fake_enqueue_jobs)
@@ -208,6 +221,25 @@ class TestListContainersContract:
         assert isinstance(data["total"], int)
         assert isinstance(data["timings_ms"], dict)
         assert isinstance(data["issues"], list)
+
+
+class TestGraphContracts:
+    def test_graph_search_request_validation(self):
+        """Validate GraphSearchRequest bounds."""
+        GraphSearchRequest(container="c1", query="q", mode="nl", max_hops=2, k=20)
+
+        with pytest.raises(ValidationError):
+            GraphSearchRequest(container="c1", query="q", mode="nl", max_hops=0)
+        with pytest.raises(ValidationError):
+            GraphSearchRequest(container="c1", query="q", mode="nl", k=0)
+
+    def test_graph_upsert_request_schema(self):
+        """Validate GraphUpsertRequest schema."""
+        node = GraphNode(id="node-1", label="GraphOS", type="Project", source_chunk_ids=["chunk-1"])
+        edge = GraphEdge(source="node-1", target="node-2", type="LINKS", source_chunk_ids=["chunk-1"])
+        req = GraphUpsertRequest(container="c1", nodes=[node], edges=[edge], mode="merge")
+        assert req.nodes[0].id == "node-1"
+        assert req.edges[0].source == "node-1"
 
 
 class TestDescribeContainerContract:
@@ -341,6 +373,65 @@ class TestContainersAddContract:
         assert "version" in data or "detail" in data
 
 
+class TestAdminRefreshContract:
+    """Contract tests for admin.refresh endpoint."""
+
+    def test_refresh_request_schema(self):
+        req = RefreshRequest(container="expressionist-art", strategy="in_place", embedder_version="1.1.0")
+        assert req.container == "expressionist-art"
+        assert req.strategy == "in_place"
+        assert req.embedder_version == "1.1.0"
+
+    def test_refresh_response_schema(self):
+        resp = RefreshResponse(request_id="req-1", job_id="job-1", status="queued")
+        assert resp.version == "v1"
+        assert resp.job_id == "job-1"
+        assert resp.status in ("queued", "done")
+
+    def test_refresh_endpoint_format(self, monkeypatch):
+        async def fake_refresh(session, payload):
+            return RefreshResponse(request_id="req-2", job_id="job-2", status="queued", timings_ms={"db_query": 1})
+
+        monkeypatch.setattr(admin_service, "enqueue_refresh", fake_refresh)
+
+        response = client.post("/v1/admin/refresh", json={"container": "expressionist-art"}, headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["request_id"]
+        assert data["job_id"]
+        assert data["status"] == "queued"
+
+
+class TestAdminExportContract:
+    """Contract tests for admin.export endpoint."""
+
+    def test_export_request_schema(self):
+        req = ExportRequest(container="expressionist-art", format="tar", include_vectors=True, include_blobs=False)
+        assert req.container == "expressionist-art"
+        assert req.format == "tar"
+        assert req.include_vectors is True
+        assert req.include_blobs is False
+
+    def test_export_response_schema(self):
+        resp = ExportResponse(request_id="req-3", job_id="job-3", status="queued")
+        assert resp.version == "v1"
+        assert resp.job_id == "job-3"
+        assert resp.status in ("queued", "done")
+
+    def test_export_endpoint_format(self, monkeypatch):
+        async def fake_export(session, payload):
+            return ExportResponse(request_id="req-4", job_id="job-4", status="queued", timings_ms={"db_query": 1})
+
+        monkeypatch.setattr(admin_service, "enqueue_export", fake_export)
+
+        response = client.post("/v1/admin/export", json={"container": "expressionist-art"}, headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["request_id"]
+        assert data["job_id"]
+        assert data["status"] == "queued"
+
+
 class TestSearchContract:
     """Contract tests for containers.search endpoint."""
 
@@ -356,11 +447,19 @@ class TestSearchContract:
         assert req.container_ids == ["container-1"]
         assert req.mode == "hybrid"
         assert req.k == 10
+        img_req = SearchRequest(
+            query_image_base64="aW1hZ2U=",
+            container_ids=["container-1"],
+            mode="crossmodal",
+        )
+        assert img_req.query is None
+        assert img_req.query_image_base64 == "aW1hZ2U="
+        assert img_req.mode == "crossmodal"
 
     def test_search_request_validation(self):
         """Test search request validation."""
         # Valid modes
-        for mode in ["semantic", "bm25", "hybrid"]:
+        for mode in ["semantic", "bm25", "hybrid", "crossmodal"]:
             req = SearchRequest(query="test", container_ids=["c1"], mode=mode)
             assert req.mode == mode
 
@@ -378,6 +477,10 @@ class TestSearchContract:
         # Missing required container_ids
         with pytest.raises(ValidationError):
             SearchRequest(query="test")
+
+        # Missing query and image
+        with pytest.raises(ValidationError):
+            SearchRequest(container_ids=["c1"])
 
     def test_search_response_schema(self):
         """Validate SearchResponse schema."""
