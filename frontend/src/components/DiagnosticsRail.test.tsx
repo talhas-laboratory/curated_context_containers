@@ -25,11 +25,11 @@ describe('DiagnosticsRail', () => {
 
     expect(screen.getByLabelText('Search diagnostics')).toBeVisible();
     expect(screen.getByText(/hybrid/)).toBeInTheDocument();
-    expect(screen.getAllByText(/150 ms/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/150ms/)).toBeInTheDocument();
   });
 
   it('is hidden when not visible', () => {
     render(<DiagnosticsRail visible={false} />);
-    expect(screen.getByTestId('diagnostics-rail')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByTestId('diagnostics-rail')).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ export function DiagnosticsRail({ diagnostics, timings, goldenSummary, visible =
     <aside
       className="w-full lg:w-72 shrink-0"
       aria-label="Search diagnostics"
+      data-testid="diagnostics-rail"
     >
       <GlassCard className="space-y-6 !p-5 bg-white/40 backdrop-blur-md border-white/30 sticky top-32">
         <header className="flex items-center justify-between border-b border-white/20 pb-4">

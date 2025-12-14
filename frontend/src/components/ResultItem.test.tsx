@@ -21,7 +21,7 @@ describe('ResultItem', () => {
     render(<ResultItem result={baseResult} onSelect={onSelect} diagnosticsVisible selected />);
 
     expect(screen.getByText('Expressionist Art')).toBeInTheDocument();
-    expect(screen.getByText(/Score/)).toBeInTheDocument();
+    expect(screen.getByText('0.9')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('result-item'));
     expect(onSelect).toHaveBeenCalledWith(baseResult);
