@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,9 +15,23 @@ from app.models.documents import (
     ListDocumentsResponse,
 )
 from app.services import documents as documents_service
+from app.core.security import verify_bearer_token
+from app.db.session import get_session
 
 client = TestClient(app)
-AUTH_HEADERS = {"Authorization": "Bearer local-dev-token"}
+
+
+def _load_test_token() -> str:
+    token = os.getenv("LLC_MCP_TOKEN")
+    if token:
+        return token
+    token_path = Path(__file__).resolve().parents[2] / "docker" / "mcp_token.txt"
+    if token_path.exists():
+        return token_path.read_text().strip()
+    return "local-dev-token"
+
+
+AUTH_HEADERS = {"Authorization": f"Bearer {_load_test_token()}"}
 
 
 @pytest.fixture(autouse=True)
@@ -53,6 +69,12 @@ def override_services(monkeypatch):
 
     monkeypatch.setattr(documents_service, "list_documents_response", fake_list)
     monkeypatch.setattr(documents_service, "delete_document_response", fake_delete)
+    async def fake_session():
+        yield None
+    app.dependency_overrides[get_session] = fake_session
+    def fake_auth():
+        return True
+    app.dependency_overrides[verify_bearer_token] = fake_auth
     yield
     app.dependency_overrides.clear()
 
@@ -63,7 +85,7 @@ def test_list_documents_endpoint():
         json={"container": "expressionist-art"},
         headers=AUTH_HEADERS,
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["container_id"] == "container-1"
     assert len(payload["documents"]) == 1
@@ -89,4 +111,3 @@ def test_delete_document_missing_returns_404():
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "DOCUMENT_NOT_FOUND"
-
