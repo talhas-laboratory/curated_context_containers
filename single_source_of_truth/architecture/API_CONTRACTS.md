@@ -1,8 +1,8 @@
 # API Contracts — MCP v1 Endpoints
 
 **Owner:** Silent Architect  
-**Last Updated:** 2025-11-27T22:45:00Z  
-**Status:** 🟡 In Progress — Phase 1 complete, file management + Phase 2 stubs documented
+**Last Updated:** 2025-12-01T17:35:00Z  
+**Status:** 🟡 In Progress — Phase 2 image/crossmodal/rerank/refresh/export documented
 
 ---
 
@@ -50,7 +50,10 @@ All responses share the envelope:
 | `/v1/containers/list` | POST | List containers with pagination/filtering | `containers.list` |
 | `/v1/containers/describe` | POST | Retrieve detailed metadata for one container | `containers.describe` |
 | `/v1/containers/add` | POST | Submit ingestion jobs for one or more sources | `containers.add` |
-| `/v1/containers/search` | POST | Execute semantic/hybrid search | `containers.search` |
+| `/v1/containers/search` | POST | Execute semantic/hybrid/graph search | `containers.search` |
+| `/v1/containers/graph_upsert` | POST | Upsert graph nodes/edges for a container | `containers.graph_upsert` |
+| `/v1/containers/graph_search` | POST | Graph/NL→Cypher search over container graph | `containers.graph_search` |
+| `/v1/containers/graph_schema` | GET | Retrieve graph labels/relationship schema | `containers.graph_schema` |
 | `/v1/jobs/status` | POST | Check status of ingestion jobs | `jobs.status` |
 | `/v1/documents/list` | POST | List embedded documents for a container | `documents.list` |
 | `/v1/documents/delete` | POST | Remove document + chunks from a container | `documents.delete` |
@@ -69,12 +72,12 @@ All responses share the envelope:
 | `/v1/collaboration/subscribe` | POST | Subscribe to container updates | `collaboration.subscribe` |
 | `/v1/collaboration/containers/{id}/subscriptions` | GET | Get container subscriptions | — |
 
-### Phase 2 Endpoints (Planned)
+### Phase 2 Endpoints
 
 | Endpoint | HTTP | Description | MCP Tool |
 |----------|------|-------------|----------|
 | `/v1/admin/refresh` | POST | Trigger re-embed jobs | `admin.refresh` |
-| `/v1/containers/export` | POST | Build/export container snapshot | `containers.export` |
+| `/v1/admin/export` | POST | Build/export container snapshot | `containers.export` |
 | `/v1/containers/recommend` | POST | Recommend containers based on mission | `containers.recommend` |
 
 All POST/PATCH endpoints accept JSON payload; GET endpoints return JSON; DELETE returns JSON confirmation.
@@ -240,19 +243,24 @@ If slug provided, server resolves to canonical ID.
 ```json
 {
   "query": "expressionist use of color",
+  "query_image_base64": "…",         // optional; when present, mode auto-promotes to crossmodal
   "container_ids": ["expressionist-art"],
   "mode": "hybrid",
   "rerank": false,
   "k": 10,
   "diagnostics": true,
+  "graph": {
+    "max_hops": 2,
+    "neighbor_k": 10
+  },
   "filters": {
-    "modality": ["text"],
+    "modality": ["text","image"],
     "metadata": {"period": ["modernism"]}
   },
   "timeout_ms": 5000
 }
 ```
-`query_image` (base64 or file handle) is supported when `mode=crossmodal`.
+`query_image_base64` enables crossmodal search; when only image is provided, rerank is skipped by design.
 
 **Response Payload:**
 ```json
@@ -284,6 +292,11 @@ If slug provided, server resolves to canonical ID.
   ],
   "total_hits": 47,
   "returned": 10,
+  "graph_context": {
+    "nodes": [],
+    "edges": [],
+    "snippets": []
+  },
   "diagnostics": {
     "embed_ms": 45,
     "vector_ms": 23,
@@ -303,6 +316,7 @@ If slug provided, server resolves to canonical ID.
 - All requested containers must exist and be `state != 'archived'`
 - When `mode=bm25`, query embedding is skipped but `issues` notes `VECTOR_SKIPPED`
 - When `diagnostics=false`, diagnostics field omitted
+ - `mode` also accepts `graph` and `hybrid_graph`; `graph` requires text query; `graph.max_hops` 1..3.
 
 **Issues:**
 - `NO_HITS` when zero results (HTTP 200, `issues` contains remediation tips)
@@ -397,9 +411,9 @@ If slug provided, server resolves to canonical ID.
 
 **Route:** `POST /v1/admin/refresh`
 
-**Purpose:** Schedule re-embedding jobs when manifest or embedder changes. In Phase 1 this endpoint returns `501` with `issues=["NOT_IMPLEMENTED"]`.
+**Purpose:** Schedule re-embedding jobs when manifest or embedder changes.
 
-**Intended Request:**
+**Request:**
 ```json
 {
   "container": "uuid or slug",
@@ -408,21 +422,132 @@ If slug provided, server resolves to canonical ID.
 }
 ```
 
----
-
-## 8. `containers.export` (Phase 2 Stub)
-
-**Route:** `POST /v1/containers/export`
-
-**Purpose:** Generate signed download link for container snapshot (metadata + vectors + blobs). Phase 1 returns `501`.
-
-**Future Request:**
+**Response:**
 ```json
 {
-  "container": "uuid",
-  "format": "tar|zip",
+  "job_id": "uuid",
+  "status": "queued",
+  "timings_ms": {"db_query": 4},
+  "issues": []
+}
+```
+
+---
+
+## 8. `admin.export` (Phase 2)
+
+**Route:** `POST /v1/admin/export`
+
+**Purpose:** Generate snapshot job for container metadata + vectors + blobs (MinIO tar/zip).
+
+**Request:**
+```json
+{
+  "container": "uuid or slug",
+  "format": "tar",
   "include_vectors": true,
   "include_blobs": true
+}
+```
+
+**Response:**
+```json
+{
+  "job_id": "uuid",
+  "status": "queued",
+  "timings_ms": {"db_query": 4},
+  "issues": []
+}
+```
+
+---
+
+## 9. `containers.graph_upsert`
+
+**Route:** `POST /v1/containers/graph_upsert`
+
+**Purpose:** Upsert graph nodes/edges for a container (merge or replace batch).
+
+**Request:**
+```json
+{
+  "container": "uuid or slug",
+  "mode": "merge",
+  "nodes": [
+    {"id": "Person:1", "label": "Alice", "type": "Person", "summary": "Engineer", "source_chunk_ids": ["chunk_1"] }
+  ],
+  "edges": [
+    {"source": "Person:1", "target": "Project:42", "type": "WORKS_ON", "source_chunk_ids": ["chunk_1"]}
+  ],
+  "diagnostics": false
+}
+```
+
+**Response:**
+```json
+{
+  "request_id": "...",
+  "inserted_nodes": 1,
+  "inserted_edges": 1,
+  "updated_nodes": 0,
+  "updated_edges": 0,
+  "timings_ms": {"graph_ms": 12},
+  "issues": []
+}
+```
+
+**Issues:** `CONTAINER_NOT_FOUND`, `GRAPH_DISABLED`, `INVALID_PARAMS` (bad chunk IDs / limits), `GRAPH_DISABLED`.
+
+---
+
+## 10. `containers.graph_search`
+
+**Route:** `POST /v1/containers/graph_search`
+
+**Purpose:** Run graph/NL→Cypher search for a container graph; optional raw Cypher via `mode="cypher"` if enabled.
+
+**Request:**
+```json
+{
+  "container": "uuid or slug",
+  "query": "decisions about GraphOS",
+  "mode": "nl",
+  "max_hops": 2,
+  "k": 20,
+  "diagnostics": true
+}
+```
+
+**Response:**
+```json
+{
+  "request_id": "...",
+  "nodes": [],
+  "edges": [],
+  "snippets": [],
+  "diagnostics": {"mode": "nl", "graph_hits": 0},
+  "timings_ms": {"graph_ms": 0},
+  "issues": []
+}
+```
+
+**Issues:** `CONTAINER_NOT_FOUND`, `GRAPH_DISABLED`, `GRAPH_CYPHER_DISABLED`, `GRAPH_QUERY_INVALID`, `NO_HITS`, `TIMEOUT`, `INVALID_PARAMS`, `VECTOR_DOWN`.
+
+---
+
+## 11. `containers.graph_schema`
+
+**Route:** `GET /v1/containers/graph_schema?container=<id_or_slug>`
+
+**Purpose:** Return graph labels/relationship types + cached schema info.
+
+**Response:**
+```json
+{
+  "request_id": "...",
+  "schema": {"node_labels": [], "edge_types": [], "cached": {}},
+  "diagnostics": {"node_count": 0, "edge_count": 0},
+  "issues": []
 }
 ```
 
@@ -445,6 +570,8 @@ If slug provided, server resolves to canonical ID.
 | `DOCUMENT_NOT_FOUND` | Document missing from container | Refresh document list; ensure IDs accurate |
 | `INVALID_DOCUMENT_ID` | Document id failed validation | Pass UUID from `documents.list` |
 | `NOT_IMPLEMENTED` | Endpoint reserved for future phase | N/A |
+| `RERANK_TIMEOUT` | Rerank provider exceeded budget | Use baseline hybrid results |
+| `RERANK_SKIPPED_NO_TEXT` | Image-only crossmodal search skips rerank | Add text query to enable rerank |
 
 **Error Response:**
 ```json
@@ -468,7 +595,7 @@ When `diagnostics=true`, responses must include:
 - `stage_scores` per result (vector, bm25, rerank, freshness)
 - `timings_ms` aggregated per pipeline stage
 - `container_status` map (`healthy|degraded|offline`)
-- `issues` array capturing suppressed warnings (e.g., fallback to cached embedding)
+- `issues` array capturing suppressed warnings (e.g., fallback to cached embedding, rerank skipped)
 - Prometheus metrics: `llc_search_requests_total{container,mode,status}` (status=`success` when no issues, `partial` when latency budget hit, otherwise `error`); `llc_search_results_returned{mode}` and `llc_search_stage_latency_seconds{stage}` mirror returned count and stage timings.
 
 Structured logs store the same diagnostics payload hashed as `diagnostics_hash` to keep logs small; full payload optionally stored in `diagnostics` table for debugging.

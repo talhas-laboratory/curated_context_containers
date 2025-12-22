@@ -1,9 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/msw/server';
 import { createTestQueryClient } from '../../tests/utils';
-import { useDescribeContainer, useListContainers } from './use-containers';
+import { useCreateContainer, useDescribeContainer, useListContainers } from './use-containers';
 
 function createWrapper() {
   const queryClient = createTestQueryClient();
@@ -60,5 +60,38 @@ describe('useDescribeContainer', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect((result.current.error as Error).message).toContain('not found');
+  });
+});
+
+describe('useCreateContainer', () => {
+  it('creates a container with defaults', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useCreateContainer(), { wrapper });
+
+    let response: any;
+    await act(async () => {
+      response = await result.current.mutateAsync({
+        name: 'container-new',
+        theme: 'New experiments',
+      });
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.container_id).toBe('container-new');
+  });
+
+  it('surfaces validation errors', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useCreateContainer(), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          // @ts-expect-error intentionally invalid to trigger 400
+          name: '',
+          theme: '',
+        })
+      ).rejects.toMatchObject({ message: expect.stringMatching(/name required/i) });
+    });
   });
 });

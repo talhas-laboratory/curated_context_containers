@@ -186,7 +186,7 @@ This document defines accessibility standards and requirements for Local Latent 
 
 | Issue | Severity | Remediation Plan | ETA |
 |-------|----------|------------------|-----|
-| (None yet) | — | — | — |
+| Multi-container selector popover focus trap | Medium | Add focus trap and Esc close in UI implementation; ensure trigger re-focus on close | Pending |
 
 ---
 
@@ -202,4 +202,3 @@ This document defines accessibility standards and requirements for Local Latent 
 **Status:** 📝 Template  
 **Next Action:** IKB Designer to conduct initial audit  
 **Cross-Reference:** COMPONENTS.md, PATTERNS.md, TOKENS.md
-

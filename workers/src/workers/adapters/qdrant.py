@@ -20,11 +20,11 @@ class QdrantAdapter:
         )
         self.collections: set[str] = set()
 
-    def _collection_name(self, container_id: str) -> str:
-        return f"c_{container_id}"
+    def _collection_name(self, container_id: str, modality: str = "text") -> str:
+        return f"c_{container_id}_{modality}"
 
-    def ensure_collection(self, container_id: str) -> None:
-        name = self._collection_name(container_id)
+    def ensure_collection(self, container_id: str, modality: str = "text", dims: int | None = None) -> None:
+        name = self._collection_name(container_id, modality)
         if name in self.collections:
             return
         try:
@@ -33,15 +33,21 @@ class QdrantAdapter:
             self.client.create_collection(
                 collection_name=name,
                 vectors_config=qmodels.VectorParams(
-                    size=settings.embedding_dims,
+                    size=dims or settings.embedding_dims,
                     distance=qmodels.Distance.COSINE,
                 ),
             )
         self.collections.add(name)
 
-    def upsert(self, container_id: str, vectors: List[qmodels.PointStruct]) -> None:
-        name = self._collection_name(container_id)
-        self.ensure_collection(container_id)
+    def upsert(
+        self,
+        container_id: str,
+        modality: str,
+        vectors: List[qmodels.PointStruct],
+        dims: int | None = None,
+    ) -> None:
+        name = self._collection_name(container_id, modality)
+        self.ensure_collection(container_id, modality, dims=dims)
         self.client.upsert(collection_name=name, points=vectors)
 
     def search_similar(
@@ -49,9 +55,10 @@ class QdrantAdapter:
         container_id: str,
         vector: List[float],
         limit: int = 1,
+        modality: str = "text",
     ) -> List[qmodels.ScoredPoint]:
-        name = self._collection_name(container_id)
-        self.ensure_collection(container_id)
+        name = self._collection_name(container_id, modality)
+        self.ensure_collection(container_id, modality)
         try:
             search_fn = (
                 getattr(self.client, "query_points", None)

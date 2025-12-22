@@ -12,6 +12,9 @@ class SearchMode(str, Enum):
     SEMANTIC = "semantic"
     HYBRID = "hybrid"
     BM25 = "bm25"
+    CROSSMODAL = "crossmodal"
+    GRAPH = "graph"
+    HYBRID_GRAPH = "hybrid_graph"
 
 
 class ContainerState(str, Enum):
@@ -85,7 +88,7 @@ class SearchResponse(BaseModel):
     """Search response with results and diagnostics."""
 
     query: str
-    containers: list[str]
+    containers: list[str] | None = None
     mode: str
     results: list[SearchResult]
     total_hits: int
@@ -93,6 +96,7 @@ class SearchResponse(BaseModel):
     diagnostics: Optional[dict[str, Any]] = None
     timings_ms: Optional[dict[str, float]] = None
     issues: Optional[list[dict[str, Any]]] = None
+    graph_context: Optional[dict[str, Any]] = None
 
 
 class Job(BaseModel):
@@ -115,4 +119,10 @@ class Source(BaseModel):
     mime: Optional[str] = None
     modality: Optional[str] = None
     meta: Optional[dict[str, Any]] = None
+
+
+
+
+
+
 

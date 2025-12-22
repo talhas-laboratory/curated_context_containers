@@ -57,8 +57,13 @@ class CacheTTLTest(unittest.TestCase):
                 return [[0.5, 0.5]]
 
         cur = FakeCursor()
+        embedder = FakeEmbedder()
         vector, hit, miss = pipelines._embedding_from_cache_or_compute(
-            cur, "cache-key", "text chunk", "text", embedder=FakeEmbedder()
+            cur,
+            "cache-key",
+            "text",
+            embed_fn=lambda: embedder.embed_text(["text chunk"])[0],
+            dims=2,
         )
 
         self.assertEqual(miss, 1)
@@ -66,6 +71,7 @@ class CacheTTLTest(unittest.TestCase):
         self.assertTrue(any("DELETE FROM embedding_cache" in q for q in cur.executed))
         self.assertTrue(any("INSERT INTO embedding_cache" in q for q in cur.executed))
         self.assertEqual(vector, [0.5, 0.5])
+        self.assertTrue(embedder.called)
 
     def test_fresh_entry_hits_cache(self):
         pipelines.CACHE_TTL_SECONDS = 60
@@ -82,7 +88,13 @@ class CacheTTLTest(unittest.TestCase):
                 return self.rows.pop(0) if self.rows else None
 
         cur = FakeCursor()
-        vector, hit, miss = pipelines._embedding_from_cache_or_compute(cur, "cache-key", "text chunk", "text")
+        vector, hit, miss = pipelines._embedding_from_cache_or_compute(
+            cur,
+            "cache-key",
+            "text",
+            embed_fn=lambda: [0.0, 0.0],
+            dims=2,
+        )
 
         self.assertEqual(hit, 1)
         self.assertEqual(miss, 0)

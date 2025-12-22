@@ -32,12 +32,12 @@ class QdrantAdapter:
         self.max_retries = 2
         self.retry_backoff = 0.25
 
-    def _collection_name(self, container_id: str) -> str:
-        return f"c_{container_id}"
+    def _collection_name(self, container_id: str, modality: str = "text") -> str:
+        return f"c_{container_id}_{modality}"
 
-    def ensure_collection(self, container_id: str) -> None:
+    def ensure_collection(self, container_id: str, modality: str = "text", dims: int | None = None) -> None:
         """Ensure the collection exists before searching."""
-        name = self._collection_name(container_id)
+        name = self._collection_name(container_id, modality)
         if name in self.collections:
             return
         try:
@@ -46,7 +46,7 @@ class QdrantAdapter:
             self.client.create_collection(
                 collection_name=name,
                 vectors_config=qmodels.VectorParams(
-                    size=settings.embedding_dims,
+                    size=dims or settings.embedding_dims,
                     distance=qmodels.Distance.COSINE,
                 ),
             )
@@ -94,8 +94,8 @@ class QdrantAdapter:
         modalities: List[str] | None = None,
     ) -> List[Tuple[Chunk, Document, float]]:
         loop = asyncio.get_running_loop()
-        container_hex = [cid.hex for cid in container_ids] if container_ids else None
-        query_filter = self._build_filter(modalities)
+        container_hex = [str(cid) for cid in container_ids] if container_ids else None
+        target_modalities = modalities or ["text"]
 
         def _search():
             results = []
@@ -104,73 +104,72 @@ class QdrantAdapter:
                 # fallback to single default collection; future: enumerate
                 target_collections = ["00000000-0000-0000-0000-000000000001"]
             for cid in target_collections:
-                collection = self._collection_name(cid)
-                self.ensure_collection(cid)
-                hits = []
-                for attempt in range(self.max_retries + 1):
-                    try:
-                        search_fn = (
-                            getattr(self.client, "query_points", None)
-                            or getattr(self.client, "search_points", None)
-                            or getattr(self.client, "search", None)
-                        )
-                        if not search_fn:
-                            raise AttributeError("qdrant_client missing search method")
-                        # query_points accepts `query` instead of `query_vector`
-                        kwargs = {
-                            "collection_name": collection,
-                            "limit": limit,
-                            "with_vectors": False,
-                            "with_payload": True,
-                        }
-                        if query_filter:
-                            kwargs["query_filter"] = query_filter
-                        if "query_vector" in search_fn.__code__.co_varnames or search_fn.__name__ == "search_points":
-                            kwargs["query_vector"] = vector
-                        else:
-                            kwargs["query"] = vector
-                        result = search_fn(**kwargs)
-                        if hasattr(result, "points"):
-                            hits = list(result.points or [])
-                        else:
-                            hits = list(result or [])
-                        break
-                    except Exception as e:  # pragma: no cover - runtime safeguard
-                        LOGGER.warning(
-                            "qdrant_search_failed",
-                            extra={
-                                "collection": collection,
-                                "attempt": attempt,
-                                "error": str(e),
-                            },
-                        )
-                        if attempt >= self.max_retries:
+                for modality in target_modalities:
+                    collection = self._collection_name(cid, modality)
+                    self.ensure_collection(cid, modality)
+                    hits = []
+                    for attempt in range(self.max_retries + 1):
+                        try:
+                            search_fn = (
+                                getattr(self.client, "query_points", None)
+                                or getattr(self.client, "search_points", None)
+                                or getattr(self.client, "search", None)
+                            )
+                            if not search_fn:
+                                raise AttributeError("qdrant_client missing search method")
+                            # query_points accepts `query` instead of `query_vector`
+                            kwargs = {
+                                "collection_name": collection,
+                                "limit": limit,
+                                "with_vectors": False,
+                                "with_payload": True,
+                            }
+                            if "query_vector" in search_fn.__code__.co_varnames or search_fn.__name__ == "search_points":
+                                kwargs["query_vector"] = vector
+                            else:
+                                kwargs["query"] = vector
+                            result = search_fn(**kwargs)
+                            if hasattr(result, "points"):
+                                hits = list(result.points or [])
+                            else:
+                                hits = list(result or [])
                             break
-                        time.sleep(self.retry_backoff * (attempt + 1))
-                for hit in hits:
-                    payload = hit.payload or {}
-                    chunk_id = payload.get("chunk_id")
-                    doc_id = payload.get("doc_id")
-                    payload_container = payload.get("container_id", cid)
-                    modality = payload.get("modality")
-                    if not chunk_id or not doc_id:
-                        continue
-                    try:
-                        UUID(str(chunk_id))
-                        UUID(str(doc_id))
-                    except Exception:
-                        continue
-                    if modalities and modality and modality not in modalities:
-                        # Defensive guard if payload doesn't match filter
-                        continue
-                    results.append(
-                        (
-                            chunk_id,
-                            doc_id,
-                            str(payload_container),
-                            float(hit.score or 0.0),
+                        except Exception as e:  # pragma: no cover - runtime safeguard
+                            LOGGER.warning(
+                                "qdrant_search_failed",
+                                extra={
+                                    "collection": collection,
+                                    "attempt": attempt,
+                                    "error": str(e),
+                                },
+                            )
+                            if attempt >= self.max_retries:
+                                break
+                            time.sleep(self.retry_backoff * (attempt + 1))
+                    for hit in hits:
+                        payload = hit.payload or {}
+                        chunk_id = payload.get("chunk_id")
+                        doc_id = payload.get("doc_id")
+                        payload_container = payload.get("container_id", cid)
+                        payload_modality = payload.get("modality")
+                        if not chunk_id or not doc_id:
+                            continue
+                        try:
+                            UUID(str(chunk_id))
+                            UUID(str(doc_id))
+                        except Exception:
+                            continue
+                        if modalities and payload_modality and payload_modality not in modalities:
+                            # Defensive guard if payload doesn't match filter
+                            continue
+                        results.append(
+                            (
+                                chunk_id,
+                                doc_id,
+                                str(payload_container),
+                                float(hit.score or 0.0),
+                            )
                         )
-                    )
             return results
 
         hit_payloads = await loop.run_in_executor(None, _search)
@@ -206,29 +205,30 @@ class QdrantAdapter:
         loop = asyncio.get_running_loop()
 
         def _delete():
-            collection = self._collection_name(container_id)
-            self.ensure_collection(container_id)
-            selector = qmodels.FilterSelector(
-                filter=qmodels.Filter(
-                    must=[
-                        qmodels.FieldCondition(
-                            key="doc_id",
-                            match=qmodels.MatchValue(value=str(document_id)),
-                        )
-                    ]
+            for modality in ("text", "pdf", "image"):
+                collection = self._collection_name(container_id, modality)
+                self.ensure_collection(container_id, modality)
+                selector = qmodels.FilterSelector(
+                    filter=qmodels.Filter(
+                        must=[
+                            qmodels.FieldCondition(
+                                key="doc_id",
+                                match=qmodels.MatchValue(value=str(document_id)),
+                            )
+                        ]
+                    )
                 )
-            )
-            try:
-                self.client.delete(collection_name=collection, points_selector=selector)
-            except Exception as exc:  # pragma: no cover - runtime safeguard
-                LOGGER.warning(
-                    "qdrant_delete_failed",
-                    extra={
-                        "collection": collection,
-                        "doc_id": document_id,
-                        "error": str(exc),
-                    },
-                )
+                try:
+                    self.client.delete(collection_name=collection, points_selector=selector)
+                except Exception as exc:  # pragma: no cover - runtime safeguard
+                    LOGGER.warning(
+                        "qdrant_delete_failed",
+                        extra={
+                            "collection": collection,
+                            "doc_id": document_id,
+                            "error": str(exc),
+                        },
+                    )
 
         await loop.run_in_executor(None, _delete)
 

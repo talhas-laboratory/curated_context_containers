@@ -7,11 +7,16 @@ import { MCPError, post } from '../mcp-client';
 import type { SearchRequest, SearchResponse } from '../types';
 
 export interface UseSearchParams {
-  query: string;
+  query?: string;
+  queryImageBase64?: string;
   containerIds: string[];
-  mode?: 'semantic' | 'hybrid' | 'bm25';
+  mode?: 'semantic' | 'hybrid' | 'bm25' | 'crossmodal' | 'graph' | 'hybrid_graph';
   k?: number;
   diagnostics?: boolean;
+  graph?: {
+    max_hops?: number;
+    neighbor_k?: number;
+  };
 }
 
 /**
@@ -22,11 +27,13 @@ export function useSearch() {
     mutationFn: async (params) => {
       const request: SearchRequest = {
         query: params.query,
+        query_image_base64: params.queryImageBase64,
         container_ids: params.containerIds,
         mode: params.mode || 'hybrid',
         k: params.k || 10,
         diagnostics: params.diagnostics ?? false,
         rerank: false,
+        graph: params.graph,
       };
       const response = await post<SearchResponse>('/v1/search', request);
       return response;
@@ -49,16 +56,18 @@ export function useSearchQuery(
       }
       const request: SearchRequest = {
         query: params.query,
+        query_image_base64: params.queryImageBase64,
         container_ids: params.containerIds,
         mode: params.mode || 'hybrid',
         k: params.k || 10,
         diagnostics: params.diagnostics ?? false,
         rerank: false,
+        graph: params.graph,
       };
       const response = await post<SearchResponse>('/v1/search', request);
       return response;
     },
-    enabled: !!params && !!params.query && params.containerIds.length > 0,
+    enabled: !!params && (!!params.query || !!params.queryImageBase64) && params.containerIds.length > 0,
     staleTime: 0, // Search results should always be fresh
     ...options,
   });

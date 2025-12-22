@@ -122,6 +122,7 @@ class ContainerClient:
         diagnostics: bool = True,
         filters: Optional[dict[str, Any]] = None,
         request_id: Optional[str] = None,
+        graph: Optional[dict[str, Any]] = None,
     ) -> SearchResponse:
         """Execute semantic/hybrid search across containers.
 
@@ -164,6 +165,8 @@ class ContainerClient:
 
         if filters:
             payload["filters"] = filters
+        if graph:
+            payload["graph"] = graph
 
         response = await self.session.post(
             "/v1/search",
@@ -173,6 +176,40 @@ class ContainerClient:
 
         data = response.json()
         return SearchResponse(**data)
+
+    async def graph_search(
+        self,
+        container: str,
+        query: str,
+        mode: str = "nl",
+        max_hops: int = 2,
+        k: int = 20,
+        diagnostics: bool = True,
+        request_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Run graph/NL→Cypher search for a graph-enabled container."""
+        payload = {
+            "container": container,
+            "query": query,
+            "mode": mode,
+            "max_hops": max_hops,
+            "k": k,
+            "diagnostics": diagnostics,
+        }
+        response = await self.session.post(
+            "/v1/containers/graph_search",
+            json=payload,
+            request_id=request_id,
+        )
+        return response.json()
+
+    async def graph_schema(self, container: str) -> dict[str, Any]:
+        """Retrieve graph schema (labels/relationship types) for a container."""
+        response = await self.session.get(
+            "/v1/containers/graph_schema",
+            params={"container": container},
+        )
+        return response.json()
 
     async def add_sources(
         self,
@@ -366,4 +403,10 @@ class SearchBuilder:
             diagnostics=self._diagnostics,
             filters=self._filters if self._filters else None,
         )
+
+
+
+
+
+
 

@@ -128,6 +128,36 @@ This document defines the interaction patterns and user flows for Local Latent C
 
 ---
 
+## Multi-Container Selection
+
+**Flow:**
+1. User opens multi-container selector from search header or export modal.
+2. Filter input narrows list by name/theme; "Select all" respects filtered list.
+3. Checkboxes toggle selections; trigger pill shows up to 2 names, then "+N".
+4. Apply closes popover and updates search/export payload (`container_ids` array); state persists for session.
+
+**States:**
+- Default: neutral trigger, shows current selection count.
+- Busy: spinner in trigger when fetching container list.
+- Empty: disabled with helper text "No containers".
+- Error: ember underline + helper text (e.g., load failure).
+
+**Keyboard:**
+- Enter/Space toggles popover; Arrow keys move list; Space toggles checkbox; Esc closes; Tab cycles within popover then returns focus to trigger.
+
+**A11y:**
+- Trigger role="combobox" with `aria-expanded`; list role="listbox"; options have `aria-selected`.
+- All targets ≥40px; helper text links to diagnostics on failure.
+
+**Motion:**
+- Popover fade/scale 200ms ease; reduced-motion variant is instant.
+
+**Empty/Error Handling:**
+- Empty: show secondary CTA "Create container" (ghost).
+- Error: show "Retry" ghost button, keep disabled selection.
+
+---
+
 ## Modal Patterns
 
 ### Document Detail Modal

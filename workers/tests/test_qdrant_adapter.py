@@ -41,27 +41,27 @@ class QdrantAdapterTest(unittest.TestCase):
         client = FakeQdrantClient()
         adapter = QdrantAdapter(client=client)
 
-        adapter.ensure_collection("container-1")
+        adapter.ensure_collection("container-1", "text")
 
-        self.assertIn("c_container-1", client.created)
+        self.assertIn("c_container-1_text", client.created)
         # second call should use cache and not re-create
-        adapter.ensure_collection("container-1")
-        self.assertEqual(client.created.count("c_container-1"), 1)
+        adapter.ensure_collection("container-1", "text")
+        self.assertEqual(client.created.count("c_container-1_text"), 1)
 
     def test_search_similar_handles_errors(self):
-        client = FakeQdrantClient(existing=["c_container-1"], search_error=True)
+        client = FakeQdrantClient(existing=["c_container-1_text"], search_error=True)
         adapter = QdrantAdapter(client=client)
-        adapter.collections.add("c_container-1")
+        adapter.collections.add("c_container-1_text")
 
-        results = adapter.search_similar("container-1", [0.1, 0.2])
+        results = adapter.search_similar("container-1", [0.1, 0.2], modality="text")
         self.assertEqual(results, [])
 
     def test_search_similar_returns_hits(self):
-        client = FakeQdrantClient(existing=["c_container-1"], search_error=False)
+        client = FakeQdrantClient(existing=["c_container-1_text"], search_error=False)
         adapter = QdrantAdapter(client=client)
-        adapter.collections.add("c_container-1")
+        adapter.collections.add("c_container-1_text")
 
-        results = adapter.search_similar("container-1", [0.1, 0.2])
+        results = adapter.search_similar("container-1", [0.1, 0.2], modality="text")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].payload["chunk_id"], "abc")
 

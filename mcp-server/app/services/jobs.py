@@ -101,7 +101,14 @@ async def enqueue_jobs(session: AsyncSession, request: ContainersAddRequest) -> 
             kind="ingest",
             status="queued",
             container_id=container.id,
-            payload={"source": source.model_dump(), "container_id": str(container.id)},
+            payload={
+                "source": source.model_dump(),
+                "container_id": str(container.id),
+                "container_name": container.name,
+                "manifest": manifest,
+                "container_dims": container.dims,
+                "embedder_version": container.embedder_version,
+            },
             error=None,
             retries=0,
         )

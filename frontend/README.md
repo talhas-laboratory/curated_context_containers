@@ -52,7 +52,7 @@ setToken('your-token-here');
 ## Features
 
 - **Container Gallery** (`/containers`) — Browse all containers with filters
-- **Search Workspace** (`/containers/[id]/search`) — Search within a container with diagnostics
+- **Search Workspace** (`/containers/[id]/search`) — Search within a container with diagnostics; modes include semantic, hybrid, bm25, crossmodal, graph, hybrid_graph
 - **Document Modal** — View full document details with provenance
 - **Keyboard Navigation** — `/` to focus search, `Esc` to clear/close
 - **Accessibility** — WCAG AA compliant, full keyboard support, reduced-motion support
@@ -130,4 +130,3 @@ Check that your bearer token is correctly set in environment variables or localS
 ## License
 
 See root LICENSE file.
-

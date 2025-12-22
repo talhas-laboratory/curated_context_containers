@@ -20,6 +20,7 @@ class ContainerSummary(BaseModel):
     theme: Optional[str] = None
     modalities: List[str] = Field(default_factory=list)
     state: str = "active"
+    graph_enabled: bool = False
     stats: ContainerStats = Field(default_factory=ContainerStats)
     created_at: datetime
     updated_at: datetime
@@ -31,6 +32,8 @@ class ContainerDetail(ContainerSummary):
     embedder_version: Optional[str] = None
     dims: Optional[int] = None
     policy: dict = Field(default_factory=dict)
+    graph_url: Optional[str] = None
+    graph_schema: dict = Field(default_factory=dict)
 
 
 class ListContainersResponse(BaseModel):

@@ -26,3 +26,21 @@ LLC_POSTGRES_DSN=postgresql://local:localpw@localhost:5432/registry alembic upgr
 ```
 
 The raw SQL migration remains the source of truth and is reused by Alembic to avoid duplication while we build out SQLAlchemy models.
+
+Graph fields (Neo4j enablement) are added in `migrations/002_graph_fields.sql` and Alembic revision `20251205_001_graph_fields.py`. Apply both migrations in order before running graph modes.
+
+## Graph configuration
+
+Graph RAG depends on Neo4j running (see `docker/compose.local.yaml`). Key env vars:
+
+- `LLC_NEO4J_URI` (default `bolt://neo4j:7687`)
+- `LLC_NEO4J_USER` / `LLC_NEO4J_PASSWORD`
+- `LLC_GRAPH_MAX_HOPS_DEFAULT` (default 2)
+- `LLC_GRAPH_QUERY_TIMEOUT_MS` (default 1200)
+- `LLC_GRAPH_ENABLE_RAW_CYPHER` (default false; enable to allow `mode=cypher`)
+- `LLC_GRAPH_NL2CYPHER_ENABLED` (default false; enable to call NL→Cypher model)
+- `LLC_GRAPH_NL2CYPHER_URL` (required when enabled; POST endpoint for Qwen NL→Cypher)
+- `LLC_GRAPH_NL2CYPHER_API_KEY` (optional bearer for the endpoint)
+- `LLC_GRAPH_NL2CYPHER_TIMEOUT_MS` (default 12000)
+
+Ensure manifests set `graph.enabled: true` for containers that should participate in graph modes.

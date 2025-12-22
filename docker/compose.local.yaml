@@ -54,12 +54,24 @@ services:
       LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
       LLC_MCP_TOKEN: ${LLC_MCP_TOKEN:-}
       LLC_MCP_TOKEN_PATH: /app/docker/mcp_token.txt
+      LLC_NEO4J_URI: ${LLC_NEO4J_URI:-bolt://neo4j:7687}
+      LLC_NEO4J_USER: ${LLC_NEO4J_USER:-neo4j}
+      LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
+      LLC_GRAPH_MAX_HOPS_DEFAULT: ${LLC_GRAPH_MAX_HOPS_DEFAULT:-2}
+      LLC_GRAPH_QUERY_TIMEOUT_MS: ${LLC_GRAPH_QUERY_TIMEOUT_MS:-1200}
+      LLC_GRAPH_ENABLE_RAW_CYPHER: ${LLC_GRAPH_ENABLE_RAW_CYPHER:-true}
+      LLC_GRAPH_NL2CYPHER_ENABLED: "true"
+      LLC_GRAPH_NL2CYPHER_URL: "https://openrouter.ai/api/v1/chat/completions"
+      LLC_GRAPH_NL2CYPHER_API_KEY: "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"
+      LLC_GRAPH_NL2CYPHER_MODEL: "anthropic/claude-3-haiku"
+      LLC_GRAPH_NL2CYPHER_TIMEOUT_MS: 8000
     ports:
       - "7801:7801"
     depends_on:
       - postgres
       - qdrant
       - minio
+      - neo4j
     volumes:
       - ../docker:/app/docker:ro
       - ../manifests:/app/manifests:ro
@@ -76,6 +88,15 @@ services:
       LLC_EMBEDDER_PROVIDER: ${LLC_EMBEDDER_PROVIDER:-nomic}
       LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
       LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
+      LLC_NEO4J_URI: ${LLC_NEO4J_URI:-bolt://neo4j:7687}
+      LLC_NEO4J_USER: ${LLC_NEO4J_USER:-neo4j}
+      LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
+      LLC_GRAPH_MAX_HOPS_DEFAULT: ${LLC_GRAPH_MAX_HOPS_DEFAULT:-2}
+      LLC_GRAPH_QUERY_TIMEOUT_MS: ${LLC_GRAPH_QUERY_TIMEOUT_MS:-1200}
+      LLC_GRAPH_ENABLE_RAW_CYPHER: ${LLC_GRAPH_ENABLE_RAW_CYPHER:-true}
+      LLC_GRAPH_LLM_ENABLED: ${LLC_GRAPH_LLM_ENABLED:-false}
+      LLC_GRAPH_LLM_MODEL: ${LLC_GRAPH_LLM_MODEL:-qwen/qwen3-235b-a22b-thinking-2507}
+      LLC_OPENROUTER_API_KEY: ${LLC_OPENROUTER_API_KEY:-}
       WORKER_POLL_INTERVAL: 5
     ports:
       - "9105:9105"
@@ -83,8 +104,29 @@ services:
       - postgres
       - qdrant
       - minio
+      - neo4j
+    volumes:
+      - ../manifests:/app/manifests:ro
+
+  neo4j:
+    image: neo4j:5.23
+    environment:
+      - NEO4J_AUTH=neo4j/${LLC_NEO4J_PASSWORD:-localneo4j}
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u ${LLC_NEO4J_USER:-neo4j} -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pg_data:
   qdrant_data:
   minio_data:
+  neo4j_data:
+  neo4j_logs:

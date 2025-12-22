@@ -1,0 +1,45 @@
+{
+  "q1_complementary_pairs": {
+    "titles": ["color, emotion, and harmony in expressionist painting"]
+  },
+  "q2_warm_cool_mood": {
+    "titles": ["color, emotion, and harmony in expressionist painting"]
+  },
+  "q3_kandinsky_inner_sound": {
+    "titles": ["der blaue reiter — color, spirituality, and abstraction"]
+  },
+  "q4_marc_animal_colors": {
+    "titles": ["der blaue reiter — color, spirituality, and abstraction"]
+  },
+  "q5_broken_color_and_impasto": {
+    "titles": ["expressionist brushwork and surface"]
+  },
+  "q6_flat_graphic_shapes_avoid": {
+    "titles": ["expressionist brushwork and surface"]
+  },
+  "q7_color_brushwork_combined_mood": {
+    "titles": [
+      "color, emotion, and harmony in expressionist painting",
+      "expressionist brushwork and surface"
+    ]
+  },
+  "q8_spiritual_vs_material_color_use": {
+    "titles": [
+      "der blaue reiter — color, spirituality, and abstraction",
+      "color, emotion, and harmony in expressionist painting"
+    ]
+  },
+  "q9_pdf_color_brushwork": {
+    "titles": [
+      "color, emotion, and harmony in expressionist painting",
+      "expressionist brushwork and surface"
+    ]
+  },
+  "q10_latency_empty_hit": {
+    "titles": ["color, emotion, and harmony in expressionist painting"]
+  },
+  "q11_crossmodal_palette": {
+    "titles": ["expressionist brushwork and surface"],
+    "uris": ["palette", "brushwork"]
+  }
+}

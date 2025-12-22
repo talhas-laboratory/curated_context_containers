@@ -34,6 +34,7 @@ def baseline_diagnostics(mode: str, containers: List[str]) -> dict:
         "containers": containers,
         "bm25_hits": 0,
         "vector_hits": 0,
+        "graph_hits": 0,
         "latency_budget_ms": 0,
         "latency_over_budget_ms": 0,
     }

@@ -44,3 +44,11 @@ async def delete_document(
             raise HTTPException(status_code=400, detail=message) from exc
         raise
 
+
+
+
+
+
+
+
+

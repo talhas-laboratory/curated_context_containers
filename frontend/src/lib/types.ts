@@ -51,10 +51,46 @@ export interface Diagnostics {
   containers?: string[];
   bm25_hits?: number;
   vector_hits?: number;
+  graph_hits?: number;
   latency_budget_ms?: number;
   latency_over_budget_ms?: number;
   rerank_applied?: boolean;
   blocked_containers?: string[];
+  graph_ms?: number;
+}
+
+export interface RefreshRequest {
+  container: string;
+  strategy?: 'in_place' | 'shadow';
+  embedder_version?: string | null;
+  graph_llm_enabled?: boolean;
+}
+
+export interface RefreshResponse {
+  version: string;
+  request_id: string;
+  partial?: boolean;
+  job_id: string;
+  status: string;
+  timings_ms?: Record<string, number>;
+  issues?: string[];
+}
+
+export interface ExportRequest {
+  container: string;
+  format?: 'tar' | 'zip';
+  include_vectors?: boolean;
+  include_blobs?: boolean;
+}
+
+export interface ExportResponse {
+  version: string;
+  request_id: string;
+  partial?: boolean;
+  job_id: string;
+  status: string;
+  timings_ms?: Record<string, number>;
+  issues?: string[];
 }
 
 export interface JobSummary {
@@ -89,13 +125,43 @@ export interface DescribeContainerResponse {
   issues?: string[];
 }
 
+export interface CreateContainerRequest {
+  name: string;
+  theme: string;
+  description?: string;
+  modalities?: string[];
+  embedder?: string;
+  embedder_version?: string;
+  dims?: number;
+  policy?: Record<string, unknown>;
+  mission_context?: string;
+  visibility?: 'private' | 'team' | 'public';
+  collaboration_policy?: 'read-only' | 'contribute';
+  auto_refresh?: boolean;
+}
+
+export interface ContainerLifecycleResponse {
+  version: string;
+  request_id: string;
+  success: boolean;
+  container_id?: string;
+  message?: string;
+  timings_ms?: Record<string, number>;
+  issues?: string[];
+}
+
 export interface SearchRequest {
-  query: string;
+  query?: string;
+  query_image_base64?: string;
   container_ids: string[];
-  mode?: 'semantic' | 'hybrid' | 'bm25';
+  mode?: 'semantic' | 'hybrid' | 'bm25' | 'crossmodal' | 'graph' | 'hybrid_graph';
   rerank?: boolean;
   k?: number;
   diagnostics?: boolean;
+  graph?: {
+    max_hops?: number;
+    neighbor_k?: number;
+  };
 }
 
 export interface SearchResponse {
@@ -108,6 +174,50 @@ export interface SearchResponse {
   returned: number;
   diagnostics: Diagnostics;
   timings_ms: Record<string, number>;
+  issues: string[];
+  graph_context?: {
+    nodes?: Array<Record<string, unknown>>;
+    edges?: Array<Record<string, unknown>>;
+    snippets?: Array<Record<string, unknown>>;
+  };
+}
+
+export interface GraphNode {
+  id: string;
+  label?: string | null;
+  type?: string | null;
+  summary?: string | null;
+  properties?: Record<string, unknown>;
+  source_chunk_ids?: string[];
+  score?: number | null;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type?: string | null;
+  properties?: Record<string, unknown>;
+  source_chunk_ids?: string[];
+  score?: number | null;
+}
+
+export interface GraphSnippet {
+  chunk_id: string;
+  doc_id: string;
+  uri?: string | null;
+  title?: string | null;
+  text?: string | null;
+}
+
+export interface GraphSearchResponse {
+  version: string;
+  request_id: string;
+  partial?: boolean;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  snippets: GraphSnippet[];
+  diagnostics?: Diagnostics;
+  timings_ms?: Record<string, number>;
   issues: string[];
 }
 

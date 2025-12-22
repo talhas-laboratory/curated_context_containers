@@ -190,6 +190,37 @@ interface ModalBaseProps {
 
 ---
 
+### Selector.MultiContainer
+
+**Intent:** Choose one or more containers for search/export; reflects backend `container_ids` array.
+
+**Anatomy:** label, trigger pill showing selected containers count/names, popover panel with search input, list of containers with checkboxes + stats, footer actions (Select all/None, Apply).
+
+**Props:**
+```typescript
+interface MultiContainerSelectorProps {
+  containers: Array<{ id: string; name: string; theme?: string; modalities: string[]; stats?: { documents?: number; chunks?: number } }>;
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  maxVisibleBadges?: number; // default 2, spill into "+N" pill
+  disabled?: boolean;
+  busy?: boolean; // when fetching containers
+  error?: string | null;
+}
+```
+
+**States:** default, hover (border line-2), focus (ink ring), open (popover visible), busy (spinner in trigger), error (ember underline + helper text), empty (disabled + "No containers" helper).
+
+**Behavior:** clicking trigger opens popover; typing in filter input narrows list by name/theme; checkboxes toggle selection; "Select all" respects filtered list; Apply closes popover and fires onChange. Keyboard: Enter/Space toggles trigger; Arrow keys move through list; Space toggles checkbox; Esc closes; Tab traps within popover.
+
+**Layout:** trigger height 40px min; trigger shows up to `maxVisibleBadges` badges (hairline border pills) with overflow "+N" pill. Popover width 360–420px, padding 16px, list max-height 320px scrollable.
+
+**Motion:** popover fade/scale 0.2s ease; focus/hover 120ms. Reduced motion: instant open/close.
+
+**A11y:** role="combobox" on trigger with `aria-expanded`; popover role="listbox"; checkboxes role="option" with `aria-selected`; all interactive elements 40px hit target; helper text for errors; consistent focus outline.
+
+---
+
 ### List.Result
 
 **Intent:** Render `SearchResult` rows with provenance + diagnostics contexts.
@@ -201,7 +232,8 @@ interface ModalBaseProps {
 interface ResultItemProps {
   result: SearchResult; // direct MCP payload
   diagnosticsVisible: boolean;
-  onSelect?(chunkId: string): void;
+  selected?: boolean;
+  onSelect?(result: SearchResult): void;
 }
 ```
 

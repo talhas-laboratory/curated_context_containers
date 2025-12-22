@@ -51,3 +51,11 @@ class DeleteDocumentResponse(BaseModel):
     timings_ms: dict = Field(default_factory=dict)
     issues: List[str] = Field(default_factory=list)
 
+
+
+
+
+
+
+
+

@@ -87,6 +87,7 @@ Local Latent Containers is a local-first retrieval system that exposes a determi
 ### Data Stores
 - **PostgreSQL 16**: canonical registry, metadata, BM25 index, job queue, embedding cache
 - **Qdrant 1.11**: vector embeddings per container + modality, payload mirrors chunk metadata
+- **Neo4j**: graph store for graph RAG nodes/edges (Cypher over bolt)
 - **MinIO**: blob storage for originals, renders, thumbnails
 - **Local disk volumes**: persistent storage bound to each container for durability across restarts
 

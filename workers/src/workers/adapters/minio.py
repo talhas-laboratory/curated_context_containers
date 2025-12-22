@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import io
 import logging
+import mimetypes
+from pathlib import Path
 from urllib.parse import urlparse
 
 from minio import Minio
@@ -17,6 +19,13 @@ def _endpoint_from_url(url: str) -> tuple[str, bool]:
     if parsed.scheme and parsed.netloc:
         return parsed.netloc, parsed.scheme == "https"
     return url.replace("http://", "").replace("https://", ""), parsed.scheme == "https"
+
+
+def _ext_from_mime(mime: str | None) -> str:
+    if not mime:
+        return "bin"
+    guessed = mimetypes.guess_extension(mime.split(";")[0].strip()) or ""
+    return guessed.lstrip(".") or "bin"
 
 
 class MinioAdapter:
@@ -54,6 +63,52 @@ class MinioAdapter:
             )
         except Exception as exc:  # pragma: no cover - requires MinIO running
             LOGGER.warning("minio_store_failed object=%s error=%s", object_name, exc)
+
+    def store_image(
+        self,
+        container_id: str,
+        doc_id: str,
+        original_bytes: bytes,
+        thumbnail_bytes: bytes | None = None,
+        filename: str | None = None,
+        mime: str | None = None,
+    ) -> dict[str, str | None]:
+        """Persist original image + optional thumbnail. Best-effort; logs on failure."""
+        paths: dict[str, str | None] = {"original": None, "thumbnail": None}
+        base_name = Path(filename or "image").name
+        ext = _ext_from_mime(mime)
+        if "." not in base_name:
+            base_name = f"{base_name}.{ext}"
+
+        original_key = f"{container_id}/{doc_id}/original/{base_name}"
+        try:
+            self.client.put_object(
+                self.bucket,
+                original_key,
+                io.BytesIO(original_bytes),
+                length=len(original_bytes),
+                content_type=mime or "application/octet-stream",
+            )
+            paths["original"] = original_key
+        except Exception as exc:  # pragma: no cover - requires MinIO running
+            LOGGER.warning("minio_store_image_failed object=%s error=%s", original_key, exc)
+
+        if thumbnail_bytes:
+            thumb_name = f"{Path(base_name).stem}_thumb.jpg"
+            thumb_key = f"{container_id}/{doc_id}/thumbs/{thumb_name}"
+            try:
+                self.client.put_object(
+                    self.bucket,
+                    thumb_key,
+                    io.BytesIO(thumbnail_bytes),
+                    length=len(thumbnail_bytes),
+                    content_type="image/jpeg",
+                )
+                paths["thumbnail"] = thumb_key
+            except Exception as exc:  # pragma: no cover - requires MinIO running
+                LOGGER.warning("minio_store_thumb_failed object=%s error=%s", thumb_key, exc)
+
+        return paths
 
 
 minio_adapter = MinioAdapter()

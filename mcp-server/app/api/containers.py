@@ -13,6 +13,13 @@ from app.models.containers import (
     ListContainersRequest,
     ListContainersResponse,
 )
+from app.models.graph import (
+    GraphSchemaResponse,
+    GraphSearchRequest,
+    GraphSearchResponse,
+    GraphUpsertRequest,
+    GraphUpsertResponse,
+)
 from app.models.agent import (
     CreateContainerRequest,
     UpdateContainerRequest,
@@ -22,6 +29,7 @@ from app.models.agent import (
 from app.services import containers as container_service
 from app.services import jobs as job_service
 from app.services import lifecycle as lifecycle_service
+from app.services import graph as graph_service
 from app.services.jobs import ContainerNotFoundError, JobValidationError
 from app.core.security import verify_bearer_token
 
@@ -137,3 +145,39 @@ async def delete_container(
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/graph_upsert", response_model=GraphUpsertResponse)
+async def graph_upsert(
+    payload: GraphUpsertRequest,
+    session=Depends(get_session),
+    authenticated: bool = Depends(verify_bearer_token),
+) -> GraphUpsertResponse:
+    try:
+        return await graph_service.graph_upsert(session, payload)
+    except Exception as exc:  # pragma: no cover - safeguard
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/graph_search", response_model=GraphSearchResponse)
+async def graph_search(
+    payload: GraphSearchRequest,
+    session=Depends(get_session),
+    authenticated: bool = Depends(verify_bearer_token),
+) -> GraphSearchResponse:
+    try:
+        return await graph_service.graph_search(session, payload)
+    except Exception as exc:  # pragma: no cover - safeguard
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/graph_schema", response_model=GraphSchemaResponse)
+async def graph_schema(
+    container: str,
+    session=Depends(get_session),
+    authenticated: bool = Depends(verify_bearer_token),
+) -> GraphSchemaResponse:
+    try:
+        return await graph_service.graph_schema(session, container)
+    except Exception as exc:  # pragma: no cover - safeguard
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

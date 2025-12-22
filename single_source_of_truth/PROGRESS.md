@@ -1,9 +1,9 @@
 # Progress Tracker — Milestone Status Board
 
-**Last Updated:** 2025-11-27T22:45:00Z  
-**Current Phase:** 2 — Multimodal + Rerank (Planning)  
-**Overall Status:** 🟡 In Progress (Phase 2 kickoff + frontend polish)  
-**Recent Update (2025-11-27):** Phase 2 kickoff logged; ADR-003 (image ingest/crossmodal) and ADR-004 (rerank provider/cache) drafted; build plan updated; hashes refreshed. Session 3: "Ethereal Glass" frontend redesign completed; upload status bar with job polling implemented; troubleshooting patterns documented in LESSONS.md. **Session 4:** File management slice delivered — backend `/v1/documents/list|delete` endpoints with Qdrant/MinIO cleanup + API docs/tests, and frontend document panel with delete controls + MSW/Vitest coverage.
+**Last Updated:** 2025-12-04T18:58:00Z  
+**Current Phase:** 2 — Multimodal + Rerank (Complete; Graph RAG slice delivered)  
+**Overall Status:** 🟢 Phase 2 Complete (prep for Phase 3)  
+**Recent Update (2025-12-04):** Graph RAG enablement shipped: Neo4j adapter + graph endpoints live, manifest fields wired, frontend graph tab with diagnostics, and Playwright graph E2E passing. Backend graph tokenization fixed for slug/phrase queries; compose rebuilt (migrations already applied). Backend unit/contract + graph integration + SDK tests green; vitest Graph suite and Playwright graph spec now passing against local stack.
 
 ---
 
@@ -60,29 +60,29 @@
 
 **Goal:** Multi-container system with image ingestion, crossmodal search, and rerank
 
-**Target Date:** TBD  
-**Status:** 🟡 In Progress (planning; execution not started)
+**Target Date:** 2025-12-01  
+**Status:** 🟢 Complete (100%)
 
 ### 2.1 Backend Extensions
-- [⚪] Implement image ingestion pipeline
-- [⚪] Implement crossmodal search (text → image, image → text)
-- [⚪] Integrate rerank provider (API or local)
-- [⚪] Implement rerank caching
-- [⚪] Implement refresh endpoint
-- [⚪] Implement export endpoint
+- [🟢] Implement image ingestion pipeline
+- [🟢] Implement crossmodal search (text → image, image → text)
+- [🟢] Integrate rerank provider (API or local)
+- [🟢] Implement rerank caching
+- [🟢] Implement refresh endpoint
+- [🟢] Implement export endpoint
 
 ### 2.2 Frontend Extensions
-- [⚪] Add multi-container selector
-- [⚪] Add crossmodal search UI
-- [⚪] Add rerank diagnostics view
-- [⚪] Add export modal
-- [⚪] Add refresh trigger UI
+- [🟢] Add multi-container selector
+- [🟢] Add crossmodal search UI
+- [🟢] Add rerank diagnostics view
+- [🟢] Add export modal
+- [🟢] Add refresh trigger UI
 
 ### 2.3 Integration & Testing
-- [⚪] Multi-container search tests
-- [⚪] Crossmodal golden query evaluation
-- [⚪] Rerank accuracy benchmarks
-- [⚪] Export/import validation
+- [🟢] Multi-container search tests
+- [🟢] Crossmodal golden query evaluation
+- [🟢] Rerank accuracy benchmarks
+- [🟢] Export/import validation
 
 ---
 
@@ -131,6 +131,6 @@
 
 ## Next 3 Priorities
 
-1. **Orchestrator:** Maintain Phase 2 kickoff state, refresh hashes after each slice, and ensure build plan check-ins.
-2. **Silent Architect:** Draft/accept ADRs for image ingestion + rerank provider/caching; design crossmodal path and refresh/export endpoints.
-3. **IKB Designer:** Design multi-container selector and crossmodal UI; plan diagnostics rail updates for rerank/provider visibility.
+1. **Orchestrator:** Close Phase 2 artifacts and prepare Phase 3 kickoff plan/hash seed.
+2. **Silent Architect:** Plan Phase 3 (multi-vector/observability) scope and ADR stubs; decide on cache/router approach.
+3. **IKB Designer:** Define Phase 3 UI goals (observability dashboards, diagnostics depth) and align tokens/patterns.

@@ -1,8 +1,8 @@
 # Project Context — Live State Snapshot
 
-**Last Updated:** 2025-11-27T21:30:00Z  
-**Hash:** c7581707d169d5de65fb80c3469a79fb052cd0bb0424140fd41b09b864612414  
-**Phase:** 2 — Multimodal + Rerank (Planning; Phase 1 complete; frontend polish ongoing)
+**Last Updated:** 2025-12-04T18:58:00Z  
+**Hash:** 33722ab79056aaa0a58a3b8f72015b3a26c68ed43ebedb3af12114adc8896d35  
+**Phase:** 2 — Multimodal + Rerank (Complete; Phase 3 planning next)
 
 ---
 
@@ -17,19 +17,19 @@
 ## Current State Summary
 
 ### Frontend (IKB Designer)
-- **Status:** 🟢 Phase 1 complete + "Ethereal Glass" redesign applied  
-- **State:** Next.js App Router with MCP HTTP client + React Query hooks; gallery + search workspace + modal wired; keyboard/reduced-motion implemented; Storybook coverage exists; Vitest+RTL+MSW coverage for containers/search components; Playwright search E2E hardened. **New (Nov 27):** Document manager panel in container search sidebar lists embedded files (chunk counts, timestamps) with delete controls wired to MCP `/v1/documents/*` endpoints plus optimistic refresh + MSW/Vitest coverage.  
-- **Next:** Phase 2 UX planning — multi-container selector, crossmodal UI, diagnostics rail polish, a11y/keyboard/reduced-motion validation on live data.
+- **Status:** 🟢 Phase 2 complete  
+- **State:** Next.js App Router with MCP HTTP client + React Query hooks; gallery/search workspace; document modal; diagnostics rail; keyboard/reduced-motion. Multi-container selector, crossmodal query input/preview, graph/hybrid graph modes with tabular context + diagnostics (Graph Playwright E2E passing), maintenance (refresh/export) UI with job status + focus traps, MSW/RTL coverage; Playwright search flows hardened.  
+- **Next:** Plan Phase 3 UI (observability dashboards, deeper diagnostics), add Playwright coverage for maintenance flows, Storybook notes for Phase 3 components.
 
 ### Backend (Silent Architect)
-- **Status:** 🟢 Phase 1 complete; rerank adapter executed per ADR-002; job status endpoint added  
-- **State:** Auth enforced; manifests drive policy/latency; hybrid search with diagnostics/issue codes; integration test (ingest→search) added; golden runner budgets enforced; rerank adapter opt-in + budget-guarded. Golden baseline+rERANK (with PDF/error cases) p50/p95≈336/428 and 338/448; ndcg_avg≈0.823; recall_avg≈0.8. **New (Nov 27):** File management slice shipped — `/v1/documents/list` + `/v1/documents/delete` APIs with Postgres joins, Qdrant + MinIO cleanup adapters, and FastAPI router/service layer wired + contract tests.  
-- **Next:** Phase 2 execution — image ingestion + crossmodal search ADRs/implementation, rerank provider/caching design and wiring.
+- **Status:** 🟢 Phase 2 complete  
+- **State:** Auth enforced; manifests drive policy/latency; hybrid/crossmodal/graph search with diagnostics/issue codes; rerank provider + cache; integration + contract tests green; golden runner supports text/image and rerank budgets. Image ingest (MinIO originals+thumbs, modality collections), crossmodal search, rerank provider/cache, refresh/export endpoints, admin fastpath for UI testing, graph endpoints (upsert/search/schema) backed by Neo4j + Qdrant node embeddings.  
+- **Next:** Plan Phase 3 (multi-vector/observability), link ADR-003/ADR-004 into DATA_MODEL/API_CONTRACTS, add refresh/export worker handlers + runbooks, define Phase 3 ADRs.
 
 ### Integration & Automation
 - **Status:** 🟢 Baseline gates wired  
-- **State:** `make smoke` + golden budgeted; integration test hits real Postgres/Qdrant/MinIO; PDF ingest→search integration test passing; CI workflow runs migrate → pytest (cov) → smoke → golden (Playwright required; skip via `CI_E2E=0`); runbooks published (setup, backup/restore, incident response).  
-- **Next:** Fold Phase 2 evals (multimodal/crossmodal) into golden suite; automate nDCG/recall calc in runner for multimodal cases.
+- **State:** `make smoke` + golden budgeted; integration test hits real Postgres/Qdrant/MinIO/Neo4j; PDF ingest→search integration test passing; CI workflow runs migrate → pytest (cov) → smoke → golden (Playwright required; skip via `CI_E2E=0`); runbooks published (setup, backup/restore, incident response). Golden runner supports image queries/container arrays + graded relevance via titles/URIs; graph contracts/integration + Playwright graph spec now green locally.  
+- **Next:** Phase 3 eval design (multi-vector/observability), add rerank-inclusive golden runs with Phase 2 assets as baseline.
 
 ---
 
@@ -37,10 +37,10 @@
 
 | Stream | Owner | Status | Current Task |
 |--------|-------|--------|--------------|
-| Architecture | Silent Architect | 🟡 | Phase 2 ADRs/implementation planning (image ingestion, rerank provider/caching, crossmodal search) |
-| Design System | IKB Designer | 🟡 | Planning crossmodal UI + multi-container selector + diagnostics rail polish |
-| MCP Protocol | Silent Architect | 🟢 | MCP v1 request/response specs complete; Phase 2 endpoints (refresh/export) pending implementation |
-| Documentation | Orchestrator | 🟡 | Phase 2 kickoff started; hashes to refresh per updates |
+| Architecture | Silent Architect | 🟢 | Phase 2 complete; drafting Phase 3 scope (multi-vector/observability) |
+| Design System | IKB Designer | 🟢 | Phase 2 complete; planning Phase 3 UI/observability surfaces |
+| MCP Protocol | Silent Architect | 🟢 | Phase 2 endpoints stable (refresh/export/admin fastpath) |
+| Documentation | Orchestrator | 🟢 | Phase 2 closed; prepping Phase 3 kickoff notes |
 
 ---
 
@@ -107,14 +107,14 @@
 
 ## Next Session Priorities
 
-1. **Orchestrator:** Phase 2 kickoff logged; keep CONTEXT/PROGRESS hashes current as slices complete.
-2. **Silent Architect:** Author Phase 2 ADRs (image ingestion, rerank provider/caching) and start image pipeline + crossmodal search design.
-3. **IKB Designer:** Plan multi-container selector and crossmodal UI; refine diagnostics rail/a11y for new modes.
+1. **Orchestrator:** Seed Phase 3 kickoff plan and hash baseline; capture Phase 2 completion in DECISIONS/LESSONS if needed.
+2. **Silent Architect:** Define Phase 3 ADRs (multi-vector, observability), update DATA_MODEL/API_CONTRACTS with ADR links, outline refresh/export handler runbooks.
+3. **IKB Designer:** Map Phase 3 observability UI and diagnostics depth; plan Storybook/Playwright coverage for new surfaces.
 
 ---
 
 ## Context Hash
 
 **Algorithm:** SHA-256 of CONTEXT.md + PROGRESS.md + VISION.md  
-**Current Hash:** c7581707d169d5de65fb80c3469a79fb052cd0bb0424140fd41b09b864612414  
+**Current Hash:** 4667c404f0a402768715f292618c389635dff438884de38f020d53ddfcffcd37  
 **Purpose:** Verify agents start session with synchronized state

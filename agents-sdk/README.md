@@ -112,10 +112,21 @@ print(container.stats.document_count)
 results = await client.search(
     query="color theory",
     containers=["expressionist-art"],
-    mode="hybrid",  # semantic, hybrid, bm25
+    mode="hybrid",  # semantic, hybrid, bm25, crossmodal, graph, hybrid_graph
     k=10,
     rerank=True  # Optional quality boost
 )
+
+# Graph search
+graph = await client.graph_search(
+    container="expressionist-art",
+    query="decisions about GraphOS",
+    mode="nl",
+    max_hops=2,
+    k=20,
+    diagnostics=True,
+)
+print(graph.get("nodes", []))
 
 # Add sources
 jobs = await client.add_sources(
@@ -329,4 +340,11 @@ pytest
 ## License
 
 MIT
+
+
+
+
+
+
+
 

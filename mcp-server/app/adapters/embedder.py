@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import logging
 from typing import List
@@ -15,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 DEFAULT_CACHE_SIZE = 64
 DEFAULT_GOOGLE_MODEL = "models/text-embedding-004"
+DEFAULT_IMAGE_MODEL = "nomic-embed-image-v1"
 
 
 class EmbeddingError(RuntimeError):
@@ -28,6 +30,7 @@ class EmbeddingClient:
         self.provider = getattr(settings, "embedder_provider", "nomic")
         self.nomic_api_key = settings.nomic_api_key
         self.nomic_api_url = getattr(settings, "nomic_api_url", "https://api-atlas.nomic.ai/v1/embedding")
+        self.nomic_image_model = getattr(settings, "nomic_image_model", DEFAULT_IMAGE_MODEL) or DEFAULT_IMAGE_MODEL
         self.google_api_key = getattr(settings, "google_api_key", "") or ""
         self.google_embed_model = getattr(settings, "google_embed_model", DEFAULT_GOOGLE_MODEL) or DEFAULT_GOOGLE_MODEL
         self.batch_size = getattr(settings, "embedding_batch_size", 32)
@@ -111,6 +114,42 @@ class EmbeddingClient:
                 vector = self._fallback(1)[0]
             ordered.append(vector)
         return ordered
+
+    async def embed_image(self, images: List[bytes]) -> List[List[float]]:
+        """Embed image bytes using provider or fall back to zeros."""
+        if not images:
+            return []
+        if self.provider != "nomic":
+            LOGGER.warning("embed_image_provider_unsupported", extra={"provider": self.provider})
+            return self._fallback(len(images))
+        if not self.nomic_api_key:
+            LOGGER.warning("embed_image_missing_key")
+            return self._fallback(len(images))
+
+        payload = {"model": self.nomic_image_model, "images": [base64.b64encode(img).decode("utf-8") for img in images]}
+        headers = {
+            "Authorization": f"Bearer {self.nomic_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                resp = await client.post(self.nomic_api_url, json=payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                embeddings = data.get("embeddings") or data.get("data") or []
+                cleaned: List[List[float]] = []
+                for item in embeddings:
+                    if isinstance(item, list):
+                        cleaned.append(item)
+                    elif isinstance(item, dict) and "embedding" in item:
+                        cleaned.append(item["embedding"])
+                if not cleaned:
+                    raise EmbeddingError("Empty image embeddings payload")
+                return self._normalize_vectors(cleaned)
+            except Exception as exc:
+                LOGGER.error("embed_image_failed", extra={"error": str(exc)})
+                raise EmbeddingError(str(exc)) from exc
 
     async def _embed_google(self, texts: List[str]) -> List[List[float]]:
         """Embed using Google embedding endpoint (Gemma/Gemini)."""

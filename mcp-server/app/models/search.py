@@ -3,16 +3,28 @@ from __future__ import annotations
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SearchRequest(BaseModel):
-    query: str
+    query: Optional[str] = None
+    query_image_base64: Optional[str] = Field(default=None, description="Base64-encoded image for crossmodal search")
     container_ids: List[str] = Field(min_length=1)
-    mode: Literal["semantic", "bm25", "hybrid"] = "hybrid"
+    mode: Literal["semantic", "bm25", "hybrid", "crossmodal", "graph", "hybrid_graph"] = "hybrid"
     k: int = Field(default=10, ge=1, le=50)
     rerank: bool = False
     diagnostics: bool = False
+    graph: Optional[dict] = Field(default=None, description="Graph-specific options (max_hops, neighbor_k)")
+
+    @model_validator(mode="after")
+    def validate_query_inputs(self):
+        if not (self.query or self.query_image_base64):
+            raise ValueError("query or query_image_base64 required")
+        if self.query_image_base64 and self.mode == "bm25":
+            raise ValueError("bm25 mode requires text query")
+        if self.mode == "graph" and self.query_image_base64:
+            raise ValueError("graph mode requires text query")
+        return self
 
 
 class SearchResult(BaseModel):
@@ -34,13 +46,14 @@ class SearchResponse(BaseModel):
     version: str = "v1"
     request_id: str
     partial: bool = False
-    query: str
+    query: Optional[str]
     results: List[SearchResult]
     total_hits: int
     returned: int
     diagnostics: dict = Field(default_factory=dict)
     timings_ms: dict = Field(default_factory=dict)
     issues: List[str] = Field(default_factory=list)
+    graph_context: Optional[dict] = Field(default=None)
 
 
 SearchResult.model_rebuild()

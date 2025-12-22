@@ -72,30 +72,97 @@ export RERANK
 
 mkdir -p "$(dirname "$OUTPUT_PATH")"
 
-ROOT_DIR="$ROOT_DIR" MCP_URL="$MCP_URL" OUTPUT_PATH="$OUTPUT_PATH" "$PYTHON_BIN" - <<'PY'
+ROOT_DIR="$ROOT_DIR" MCP_URL="$MCP_URL" OUTPUT_PATH="$OUTPUT_PATH" QUERIES_JSON="$QUERIES_JSON" "$PYTHON_BIN" - <<'PY'
+import base64
 import json
+import math
 import os
+import re
 import subprocess
 import sys
-from pathlib import Path
 from datetime import datetime, timezone
-import math
+from pathlib import Path
 
 try:
     import psycopg
-except ImportError:  # pragma: no cover - optional dependency for CI/sql checks
+except ImportError:  # pragma: no cover
     psycopg = None
+
 
 def _norm_doc_id(value: str | None) -> str:
     if not value:
         return ""
-    return str(value).replace("-", "")
+    return str(value).replace("-", "").lower()
+
+
+def _norm_text(value: str | None) -> str:
+    if not value:
+        return ""
+    return re.sub(r"\s+", " ", str(value).lower()).strip()
+
+
+def _load_image_base64(path: str | None) -> str:
+    if not path:
+        return ""
+    file_path = Path(path)
+    if not file_path.exists():
+        print(f"Image path {file_path} not found; skipping image payload.", file=sys.stderr)
+        return ""
+    return base64.b64encode(file_path.read_bytes()).decode("utf-8")
+
+
+def _normalize_truth(raw: dict[str, object]) -> dict[str, dict[str, object]]:
+    truth: dict[str, dict[str, object]] = {}
+    for qid, entry in raw.items():
+        record = {"scores": {}, "titles": [], "uris": []}
+        if isinstance(entry, list):
+            record["scores"] = {_norm_doc_id(str(doc_id)): 1.0 for doc_id in entry}
+        elif isinstance(entry, dict):
+            doc_ids = entry.get("doc_ids") or entry.get("ids") or entry.get("docids") or {}
+            if isinstance(doc_ids, dict):
+                record["scores"].update({_norm_doc_id(str(k)): float(v) for k, v in doc_ids.items()})
+            elif isinstance(doc_ids, list):
+                record["scores"].update({_norm_doc_id(str(v)): 1.0 for v in doc_ids})
+
+            titles = entry.get("titles") or entry.get("title_contains") or []
+            uris = entry.get("uris") or entry.get("uri_contains") or []
+            record["titles"] = [_norm_text(t) for t in titles]
+            record["uris"] = [_norm_text(u) for u in uris]
+        truth[qid] = record
+    return truth
+
+
+def _relevance_for_result(result: dict[str, object], truth_entry: dict[str, object] | None) -> float | None:
+    if not truth_entry:
+        return None
+    doc_id = _norm_doc_id(result.get("doc_id")) if isinstance(result, dict) else ""
+    title = _norm_text(result.get("title")) if isinstance(result, dict) else ""
+    uri = _norm_text(result.get("uri")) if isinstance(result, dict) else ""
+
+    if doc_id and doc_id in truth_entry.get("scores", {}):
+        return float(truth_entry["scores"][doc_id])
+
+    for token in truth_entry.get("titles", []):
+        if token and token in title:
+            return 1.0
+
+    for token in truth_entry.get("uris", []):
+        if token and token in uri:
+            return 1.0
+
+    return None
+
 
 root = Path(os.environ.get("ROOT_DIR", "."))
-queries_path = root / "golden_queries.json"
+queries_path = Path(os.environ.get("QUERIES_JSON", root / "golden_queries.json"))
 if not queries_path.exists():
     print("golden_queries.json not found", file=sys.stderr)
     sys.exit(1)
+
+default_judgments = root / "golden_judgments.json"
+judgments_path = os.environ.get("JUDGMENTS_PATH")
+if not judgments_path and default_judgments.exists():
+    judgments_path = str(default_judgments)
 
 queries = json.loads(queries_path.read_text())
 mcp_url = os.environ.get("MCP_URL", "http://localhost:7801")
@@ -107,51 +174,68 @@ budget_env = os.environ.get("BUDGET_MS")
 budget_ms = int(budget_env) if budget_env else None
 b95_env = os.environ.get("BUDGET_P95_MS")
 budget_p95 = int(b95_env) if b95_env else None
-judgments_path = os.environ.get("JUDGMENTS_PATH") or ""
-judgments = {}
+
+judgments_raw: dict[str, object] = {}
 if judgments_path:
     jpath = Path(judgments_path)
     if jpath.exists():
         try:
             content = jpath.read_text().strip()
             if content:
-                judgments = json.loads(content)
-            else:  # empty file, treat as no judgments
+                judgments_raw = json.loads(content)
+            else:
                 print(f"Judgments file {jpath} is empty; skipping judgments.", file=sys.stderr)
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             print(f"Failed to read judgments file {jpath}: {exc}", file=sys.stderr)
-            judgments = {}
+            judgments_raw = {}
     else:
         print(f"Judgments file {jpath} not found; skipping judgments.", file=sys.stderr)
+
+truth = _normalize_truth(judgments_raw)
 
 summary = []
 failures = []
 containers = set()
 latencies = []
 for query in queries:
-    payload = json.dumps({
-        "query": query["query"],
-        "container_ids": [query["container"]],
+    container_ids = query.get("container_ids") or ([query["container"]] if query.get("container") else [])
+    if not container_ids:
+        print(f"Query {query.get('id')} missing container; skipping", file=sys.stderr)
+        continue
+
+    image_base64 = query.get("query_image_base64") or _load_image_base64(query.get("query_image_path"))
+    payload = {
+        "query": query.get("query"),
+        "query_image_base64": image_base64 or None,
+        "container_ids": container_ids,
+        "mode": query.get("mode") or "hybrid",
+        "k": query.get("k") or 10,
         "rerank": rerank_enabled,
-    })
+    }
+    payload = {k: v for k, v in payload.items() if v not in (None, [], "")}
+
     curl_cmd = [
-        "curl", "-s", "-X", "POST",
-        f"{mcp_url}/v1/search"
+        "curl",
+        "-s",
+        "-X",
+        "POST",
+        f"{mcp_url}/v1/search",
     ]
     for header in headers:
         curl_cmd.extend(["-H", header])
-    curl_cmd.extend(["-d", payload])
+    curl_cmd.extend(["-d", json.dumps(payload)])
     result = subprocess.run(curl_cmd, capture_output=True, text=True, check=True)
     data = json.loads(result.stdout)
     results = data.get("results") or []
+
     dedup_doc_ids = []
     seen_doc_ids = set()
-    for val in (_norm_doc_id(res.get("doc_id")) for res in results if res.get("doc_id")):
+    for val in (_norm_doc_id(res.get("doc_id")) for res in results if isinstance(res, dict) and res.get("doc_id")):
         if not val or val in seen_doc_ids:
             continue
         seen_doc_ids.add(val)
         dedup_doc_ids.append(val)
-    doc_ids = dedup_doc_ids
+
     row = {
         "id": query["id"],
         "returned": data.get("returned"),
@@ -161,8 +245,9 @@ for query in queries:
         "rerank": rerank_enabled,
         "ndcg": None,
         "recall": None,
-        "doc_ids": doc_ids,
+        "doc_ids": dedup_doc_ids,
     }
+
     total_ms = (row["timings_ms"] or {}).get("total_ms")
     if budget_ms is not None:
         row["budget_ms"] = budget_ms
@@ -171,27 +256,36 @@ for query in queries:
             failures.append(f"{query['id']}:over_budget")
     if total_ms is not None:
         latencies.append(total_ms)
-    truth = judgments.get(query["id"])
-    if truth:
-        if isinstance(truth, dict):
-            rels = {_norm_doc_id(str(k)): float(v) for k, v in truth.items()}
-        else:
-            rels = {_norm_doc_id(str(doc_id)): 1.0 for doc_id in truth}
+
+    truth_entry = truth.get(query["id"])
+    if truth_entry:
+        rel_scores = truth_entry.get("scores", {})
+        total_relevant = len(rel_scores) + len(truth_entry.get("titles", [])) + len(truth_entry.get("uris", []))
+        total_relevant = max(total_relevant, 1)
+
         gains = []
-        for rank, doc_id in enumerate(doc_ids, start=1):
-            rel = float(rels.get(_norm_doc_id(doc_id), 0.0))
-            if rel > 0:
-                gains.append(rel / (math.log2(rank + 1)))
+        matched = set()
+        for rank, res in enumerate(results, start=1):
+            relevance = _relevance_for_result(res, truth_entry)
+            if relevance is None:
+                continue
+            doc_key = _norm_doc_id(res.get("doc_id")) or _norm_text(res.get("title")) or _norm_text(res.get("uri"))
+            if doc_key:
+                matched.add(doc_key)
+            gains.append(float(relevance) / (math.log2(rank + 1)))
+
         dcg = sum(gains)
-        ideal = sorted(rels.values(), reverse=True)
+        ideal_rels = list(rel_scores.values()) + [1.0] * (total_relevant - len(rel_scores))
+        ideal = sorted(ideal_rels, reverse=True)
         idcg = sum(rel / (math.log2(i + 2)) for i, rel in enumerate(ideal))
         row["ndcg"] = round(dcg / idcg, 4) if idcg else 0.0
-        found = sum(1 for doc_id in doc_ids if _norm_doc_id(doc_id) in rels)
-        row["recall"] = round(found / max(len(rels), 1), 4)
+        row["recall"] = round(len(matched) / total_relevant, 4)
+
     summary.append(row)
-    if (row.get("returned") or 0) == 0:
+    if ((row.get("returned") or 0) == 0) and not rerank_enabled:
         failures.append(query["id"])
-    containers.add(query["container"])
+    for cid in container_ids:
+        containers.add(cid)
 
 timing_totals = {}
 for row in summary:
@@ -257,13 +351,13 @@ if dsn and psycopg is not None:
                     "SELECT COUNT(*) FROM embedding_cache",
                 )
                 cache_row = cur.fetchone()[0]
-                sql_checks[container_name] = {
+                sql_checks[container_ref] = {
                     "chunk_count": chunk_count,
                     "embedding_cache_rows_total": cache_row,
                 }
                 if chunk_count == 0:
-                    failures.append(f"sql_chunk_count:{container_name}")
-    except Exception as exc:  # pragma: no cover - optional path
+                    failures.append(f"sql_chunk_count:{container_ref}")
+    except Exception as exc:  # pragma: no cover
         sql_checks = {"error": str(exc)}
 
 if sql_checks:

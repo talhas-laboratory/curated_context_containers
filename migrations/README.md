@@ -5,13 +5,14 @@ Phase 1 exposes both the raw SQL migration (canonical contract) and an Alembic w
 The current workflow is:
 
 1. Export `LLC_POSTGRES_DSN` or pass explicit `psql` connection parameters.
-2. Apply `001_initial_schema.sql` to bootstrap extensions, enum types, and tables.
+2. Apply `001_initial_schema.sql` to bootstrap extensions, enum types, and tables, then apply subsequent files in order (e.g., `002_graph_fields.sql`).
 3. Commit any follow-up migration files in numeric order (`002_*.sql`, `003_*.sql`, ...).
 
 ```bash
 # Example (from repo root)
 export LLC_POSTGRES_DSN="postgresql://local:localpw@localhost:5432/registry"
 psql "$LLC_POSTGRES_DSN" -f migrations/001_initial_schema.sql
+psql "$LLC_POSTGRES_DSN" -f migrations/002_graph_fields.sql
 ```
 
 When richer migrations are needed, create new Alembic revisions that either call additional SQL files in this directory or use standard Alembic operations.

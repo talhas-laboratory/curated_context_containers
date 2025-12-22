@@ -1,8 +1,8 @@
 # Data Model — Schemas & Contracts
 
 **Owner:** Silent Architect  
-**Last Updated:** 2025-11-09T01:35:00Z  
-**Status:** 🟡 In Progress — Baseline schemas defined, migrations pending
+**Last Updated:** 2025-12-01T17:30:00Z  
+**Status:** 🟡 In Progress — Phase 2 modalities + refresh/export captured, migrations pending
 
 ---
 
@@ -43,12 +43,17 @@ CREATE TABLE containers (
     acl JSONB NOT NULL DEFAULT '{}',
     state container_state NOT NULL DEFAULT 'active',
     stats JSONB NOT NULL DEFAULT jsonb_build_object('document_count',0,'chunk_count',0,'size_mb',0),
+    graph_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    graph_url TEXT,
+    graph_schema JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_containers_state ON containers(state);
 CREATE INDEX idx_containers_theme ON containers(theme);
 ```
+
+**Graph fields:** `graph_enabled` flags containers that participate in graph RAG; `graph_url` allows overriding the default Neo4j bolt URI; `graph_schema` can cache introspected labels/relationships for diagnostics/UI.
 
 ### `container_versions`
 History of manifest revisions for auditing.
@@ -143,11 +148,11 @@ CREATE TABLE job_events (
 ```
 
 ### `embedding_cache`
-Stores reusable embeddings keyed by content hash.
+Stores reusable embeddings keyed by content hash + modality + model version.
 ```sql
 CREATE TABLE embedding_cache (
-    cache_key TEXT PRIMARY KEY,                -- sha256(content) + ':' + model_version
-    modality modality NOT NULL,
+    cache_key TEXT PRIMARY KEY,                -- sha256(content) + ':' + model_version + ':' + modality
+    modality modality NOT NULL,                -- text|pdf|image
     dims INT NOT NULL,
     vector BYTEA NOT NULL,                    -- stored as float32[] via extension or pgvector (phase 2)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -205,14 +210,19 @@ CREATE TABLE diagnostics (
 
 ### Embedding Cache + Dedup Policy
 
-- `embedding_cache.cache_key = sha256(chunk_text) + modality`. Entries store vector bytes + timestamps.
+- `embedding_cache.cache_key = sha256(content) + ':' + embedder_version + ':' + modality`. Entries store vector bytes + timestamps; dims follow container manifest (1408 for multimodal).
 - TTL (`LLC_EMBEDDING_CACHE_TTL_SECONDS`, default 7 days) governs eviction: stale rows are recomputed + replaced whenever accessed.
-- Semantic dedup threshold (`LLC_SEMANTIC_DEDUP_THRESHOLD`, default 0.96 cosine) is applied per chunk:
-  1. Worker embeds chunk text (after cache check)
-  2. Search Qdrant collection `c_<container_uuid>` for top-1 neighbor
+- Semantic dedup threshold (`LLC_SEMANTIC_DEDUP_THRESHOLD`, default 0.96 cosine; manifest override allowed per ADR-003) is applied per chunk:
+  1. Worker embeds chunk text/image (after cache check)
+  2. Search Qdrant collection `c_<container_uuid>_<modality>` for top-1 neighbor
   3. When score ≥ threshold, insert chunk with `dedup_of = <existing_chunk_id>` and skip Qdrant upsert
   4. `chunks.meta.semantic_dedup_score` stores the similarity for UI diagnostics
 - Dedup logs annotated (`ingest_semantic_dedup`) so smoke/golden flows can assert policy behavior.
+
+### Rerank Cache (Phase 2)
+- In-memory cache keyed by sha256 of `provider_url + query + top_k_in + top_k_out + candidate_ids`.
+- TTL controlled by `LLC_RERANK_CACHE_TTL_SECONDS` (default 300s); size via `LLC_RERANK_CACHE_SIZE` (default 256 entries).
+- Stored value: ordering of chunk_ids + diagnostics hash. Persisted store deferred.
 
 ---
 

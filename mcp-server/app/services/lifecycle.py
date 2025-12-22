@@ -53,6 +53,7 @@ async def create_container(
         acl={},
         state="active",
         stats={},
+        graph_enabled=True,
         created_by_agent=agent_id,
         mission_context=request.mission_context,
         visibility=request.visibility,
@@ -176,4 +177,7 @@ def _maybe_uuid(value: str) -> Optional[UUID]:
         return UUID(value)
     except (TypeError, ValueError):
         return None
+
+
+
 

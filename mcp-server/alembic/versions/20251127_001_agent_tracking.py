@@ -1,7 +1,7 @@
 """Add agent tracking and container lifecycle fields.
 
 Revision ID: 20251127_001
-Revises: 20251109_001_initial_schema
+Revises: 20251109_001
 Create Date: 2025-11-27
 """
 from alembic import op
@@ -10,7 +10,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers
 revision = '20251127_001'
-down_revision = '20251109_001_initial_schema'
+down_revision = '20251109_001'
 branch_labels = None
 depends_on = None
 
@@ -81,4 +81,11 @@ def downgrade() -> None:
     op.drop_column('containers', 'auto_refresh')
     op.drop_column('containers', 'mission_context')
     op.drop_column('containers', 'created_by_agent')
+
+
+
+
+
+
+
 

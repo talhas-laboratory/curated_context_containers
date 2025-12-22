@@ -1,0 +1,8 @@
+name: graphic_design
+theme: graphic design
+graph:
+  enabled: true
+modalities:
+  - text
+  - pdf
+  - image

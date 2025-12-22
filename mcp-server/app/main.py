@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
+import os
 
 from .api.routes import register_routes
 from .db.session import get_session
@@ -15,10 +16,27 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Local Latent Containers MCP", version="0.1.0")
 
+
+def _cors_origins() -> list[str]:
+    """Compute allowed CORS origins from env or sensible local defaults."""
+    raw = os.getenv("MCP_CORS_ORIGINS")
+    if raw:
+        origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+        if origins:
+            return origins
+    return [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins(),
+    allow_origin_regex=".*",  # fallback to wildcard for any dev host
+    allow_credentials=False,  # We use bearer tokens; no cookies required
     allow_methods=["*"],
     allow_headers=["*"],
 )

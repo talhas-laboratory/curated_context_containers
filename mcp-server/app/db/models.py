@@ -4,8 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ARRAY, JSON, Enum, Text
-from sqlalchemy.dialects.postgresql import INT4RANGE, TSRANGE, TSVECTOR, UUID
+from sqlalchemy import ARRAY, JSON, Boolean, Enum, Text
+from sqlalchemy.dialects.postgresql import ENUM, INT4RANGE, TSRANGE, TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -19,7 +19,7 @@ class Container(Base):
     name: Mapped[str] = mapped_column(Text, unique=True)
     theme: Mapped[str | None]
     description: Mapped[str | None]
-    modalities: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    modalities: Mapped[list[str]] = mapped_column(ARRAY(ENUM('text', 'pdf', 'image', 'web', name='modality', create_type=False)))
     embedder: Mapped[str]
     embedder_version: Mapped[str]
     dims: Mapped[int]
@@ -27,10 +27,16 @@ class Container(Base):
     acl: Mapped[dict[str, Any]] = mapped_column(JSON)
     state: Mapped[str] = mapped_column(Enum("active", "paused", "archived", name="container_state"))
     stats: Mapped[dict[str, Any]] = mapped_column(JSON)
+    graph_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    graph_url: Mapped[str | None]
+    graph_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=dict)
+    created_by_agent: Mapped[str | None]
+    mission_context: Mapped[str | None]
+    auto_refresh: Mapped[bool] = mapped_column(Boolean, default=False)
+    visibility: Mapped[str] = mapped_column(Text, default="private")
+    collaboration_policy: Mapped[str] = mapped_column(Text, default="read-only")
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(default=func.now())
-    created_at: Mapped[datetime]
-    updated_at: Mapped[datetime]
 
 
 class ContainerVersion(Base):

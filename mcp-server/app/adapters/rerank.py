@@ -1,7 +1,9 @@
-"""Rerank adapter with optional HTTP provider and deterministic fallback."""
+"""Rerank adapter with optional HTTP provider, cache, and deterministic fallback."""
 from __future__ import annotations
 
+import hashlib
 import logging
+import time
 from typing import Dict, List, Tuple
 
 import httpx
@@ -26,6 +28,32 @@ class RerankAdapter:
         self.api_url = getattr(settings, "rerank_api_url", "") or ""
         self.api_key = getattr(settings, "rerank_api_key", None)
         self.timeout_ms = getattr(settings, "rerank_timeout_ms", 200)
+        self.cache_ttl_seconds = getattr(settings, "rerank_cache_ttl_seconds", 300)
+        self.cache_size = getattr(settings, "rerank_cache_size", 128)
+        self.cache: Dict[str, tuple[float, List[str], Dict[str, object]]] = {}
+
+    def _cache_key(self, query: str, candidates: List[SearchResult], top_k_in: int, top_k_out: int) -> str:
+        ids = "|".join(res.chunk_id for res in candidates[:top_k_in])
+        raw = f"{self.api_url}|{query}|{top_k_in}|{top_k_out}|{ids}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def _get_cache(self, key: str) -> tuple[List[str], Dict[str, object]] | None:
+        if not self.cache_size or key not in self.cache:
+            return None
+        ts, chunk_ids, diags = self.cache.get(key, (0.0, [], {}))
+        if time.time() - ts > max(self.cache_ttl_seconds, 0):
+            self.cache.pop(key, None)
+            return None
+        return chunk_ids, diags
+
+    def _set_cache(self, key: str, chunk_ids: List[str], diagnostics: Dict[str, object]) -> None:
+        if self.cache_size <= 0:
+            return
+        if len(self.cache) >= self.cache_size:
+            # Evict oldest entry (approximate) to keep footprint small.
+            oldest_key = next(iter(self.cache.keys()))
+            self.cache.pop(oldest_key, None)
+        self.cache[key] = (time.time(), chunk_ids, diagnostics)
 
     async def rerank(
         self,
@@ -54,6 +82,22 @@ class RerankAdapter:
         if not self.api_url:
             # No provider configured; deterministic pass-through to keep ordering stable.
             return selected[:top_k_out] + candidates[top_k_in:], diagnostics, []
+
+        cache_key = self._cache_key(query, candidates, top_k_in, top_k_out)
+        cached = self._get_cache(cache_key)
+        if cached:
+            order, cached_diags = cached
+            diagnostics.update(cached_diags)
+            diagnostics["rerank_cache_hit"] = True
+            by_id = {res.chunk_id: res for res in selected}
+            ranked = [by_id[cid] for cid in order if cid in by_id]
+            for res in selected:
+                if res.chunk_id not in order:
+                    ranked.append(res)
+            top_slice = ranked[:top_k_out]
+            top_ids = {res.chunk_id for res in top_slice}
+            return top_slice + [r for r in candidates if r.chunk_id not in top_ids], diagnostics, []
+        diagnostics["rerank_cache_hit"] = False
 
         payload = {
             "query": query,
@@ -125,6 +169,7 @@ class RerankAdapter:
         top_slice = ranked[:top_k_out]
         top_ids = {res.chunk_id for res in top_slice}
         reranked = top_slice + [r for r in candidates if r.chunk_id not in top_ids]
+        self._set_cache(cache_key, [res.chunk_id for res in top_slice], diagnostics.copy())
         return reranked, diagnostics, []
 
 

@@ -68,5 +68,13 @@
     "k": 5,
     "query": "expressionist color theory hue saturation value",
     "container": "00000000-0000-0000-0000-000000000001"
+  },
+  {
+    "id": "q11_crossmodal_palette",
+    "mode": "crossmodal",
+    "k": 10,
+    "query": "expressionist palette blocks and brushstroke texture",
+    "query_image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==",
+    "container": "00000000-0000-0000-0000-000000000001"
   }
 ]

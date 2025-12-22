@@ -81,3 +81,11 @@ class MinioAdapter:
 
 minio_adapter = MinioAdapter()
 
+
+
+
+
+
+
+
+

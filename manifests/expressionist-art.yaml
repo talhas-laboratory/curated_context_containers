@@ -33,6 +33,10 @@ web:
   sanitize_rules: ["strip_nav", "strip_ads"]
 dedup:
   semantic_threshold: 0.92
+graph:
+  enabled: true
+  url: bolt://neo4j:7687
+  schema: {}
 acl:
   roles:
     owner: ["local:you"]

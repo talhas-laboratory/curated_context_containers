@@ -34,6 +34,7 @@ def _to_summary(model: Container) -> ContainerSummary:
         theme=model.theme,
         modalities=[str(m) for m in (model.modalities or [])],
         state=model.state,
+        graph_enabled=bool(getattr(model, "graph_enabled", True)),
         stats=_stats_from_dict(model.stats),
         created_at=model.created_at,
         updated_at=model.updated_at,
@@ -49,8 +50,10 @@ def _to_detail(model: Container) -> ContainerDetail:
         embedder_version=model.embedder_version,
         dims=model.dims,
         policy=model.policy or {},
+        graph_url=model.graph_url,
+        graph_schema=model.graph_schema or {},
     )
-    manifest = manifests.load_manifest(model.name) or manifests.load_manifest(model.id)
+    manifest = manifests.load_manifest(model.name) or manifests.load_manifest(str(model.id))
     if manifest:
         detail.description = manifest.get("description") or detail.description
         detail.modalities = manifest.get("modalities", detail.modalities)
@@ -60,6 +63,14 @@ def _to_detail(model: Container) -> ContainerDetail:
         retrieval_policy = manifest.get("retrieval")
         if retrieval_policy:
             detail.policy = retrieval_policy
+        graph_cfg = manifest.get("graph") or {}
+        if graph_cfg:
+            detail.graph_enabled = graph_cfg.get("enabled", detail.graph_enabled)
+            detail.graph_url = graph_cfg.get("url", detail.graph_url)
+            detail.graph_schema = graph_cfg.get("schema", detail.graph_schema)
+        # Policy checks: ensure graph-enabled manifests require graph_enabled flag
+        if detail.graph_enabled is False and graph_cfg.get("enabled"):
+            detail.graph_enabled = True
     return detail
 
 

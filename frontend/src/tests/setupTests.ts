@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './msw/server';
-import { resetDocumentFixtures } from './msw/handlers';
+import { resetDocumentFixtures, resetJobFixtures } from './msw/handlers';
 
 // Polyfill matchMedia for motion utilities and responsive checks
 if (typeof window !== 'undefined') {
@@ -31,6 +31,7 @@ if (typeof navigator !== 'undefined' && !navigator.clipboard) {
 beforeAll(() => server.listen());
 afterEach(() => {
   resetDocumentFixtures();
+  resetJobFixtures();
   server.resetHandlers();
 });
 afterAll(() => server.close());

@@ -56,6 +56,23 @@ class MinioAdapterTest(unittest.TestCase):
         self.assertEqual(length, len("hello world"))
         self.assertEqual(content_type, "text/plain")
 
+    def test_store_image_writes_original_and_thumbnail(self):
+        client = FakeMinioClient(exists=True)
+        adapter = MinioAdapter(client=client, bucket="ok")
+        paths = adapter.store_image(
+            "container",
+            "doc",
+            b"\x89PNG",
+            thumbnail_bytes=b"thumb",
+            filename="example.png",
+            mime="image/png",
+        )
+        stored_keys = [entry[1] for entry in client.stored]
+        self.assertIn("container/doc/original/example.png", stored_keys)
+        self.assertTrue(any(key.endswith("_thumb.jpg") for key in stored_keys))
+        self.assertEqual(paths["original"], "container/doc/original/example.png")
+        self.assertTrue(paths["thumbnail"].endswith("_thumb.jpg"))
+
 
 if __name__ == "__main__":
     unittest.main()

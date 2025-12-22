@@ -99,10 +99,10 @@ class LLCMCPGateway:
                 Tool(
                     name="containers_search",
                     description=(
-                        "Execute semantic or hybrid search across one or more containers. "
-                        "Returns ranked results with snippets, scores, and provenance. "
-                        "Supports multiple search modes (semantic, hybrid, bm25), optional reranking, "
-                        "and metadata filtering. Use this as the primary information retrieval tool."
+                        "Execute semantic, hybrid, crossmodal, or graph-augmented search across containers. "
+                        "Returns ranked results with snippets, provenance, and optional graph context. "
+                        "Supports multiple search modes (semantic, hybrid, bm25, crossmodal, graph, hybrid_graph), "
+                        "optional reranking, and metadata filtering."
                     ),
                     inputSchema={
                         "type": "object",
@@ -112,6 +112,10 @@ class LLCMCPGateway:
                                 "type": "string",
                                 "description": "Search query text",
                             },
+                            "query_image_base64": {
+                                "type": "string",
+                                "description": "Base64-encoded image for crossmodal search",
+                            },
                             "container_ids": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -119,9 +123,17 @@ class LLCMCPGateway:
                             },
                             "mode": {
                                 "type": "string",
-                                "enum": ["semantic", "hybrid", "bm25"],
+                                "enum": ["semantic", "hybrid", "bm25", "crossmodal", "graph", "hybrid_graph"],
                                 "default": "hybrid",
-                                "description": "Search mode (hybrid recommended for best results)",
+                                "description": "Search mode (hybrid recommended; graph modes require graph-enabled containers)",
+                            },
+                            "graph": {
+                                "type": "object",
+                                "description": "Graph options (graph/hybrid_graph modes)",
+                                "properties": {
+                                    "max_hops": {"type": "integer", "minimum": 1, "maximum": 3, "default": 2},
+                                    "neighbor_k": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
+                                },
                             },
                             "rerank": {
                                 "type": "boolean",
@@ -218,6 +230,78 @@ class LLCMCPGateway:
                     },
                 ),
                 Tool(
+                    name="containers_graph_search",
+                    description=(
+                        "Run graph/NL→Cypher search for a graph-enabled container. "
+                        "Returns nodes, edges, and provenance snippets."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "required": ["container", "query"],
+                        "properties": {
+                            "container": {"type": "string", "description": "Container UUID or slug"},
+                            "query": {"type": "string", "description": "Natural language graph query"},
+                            "mode": {"type": "string", "enum": ["nl", "cypher"], "default": "nl"},
+                            "max_hops": {"type": "integer", "minimum": 1, "maximum": 3, "default": 2},
+                            "k": {"type": "integer", "minimum": 1, "maximum": 50, "default": 20},
+                            "diagnostics": {"type": "boolean", "default": True},
+                        },
+                    },
+                ),
+                Tool(
+                    name="containers_graph_upsert",
+                    description="Upsert graph nodes/edges for a container (merge or replace batch).",
+                    inputSchema={
+                        "type": "object",
+                        "required": ["container"],
+                        "properties": {
+                            "container": {"type": "string"},
+                            "mode": {"type": "string", "enum": ["merge", "replace"], "default": "merge"},
+                            "nodes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "required": ["id"],
+                                    "properties": {
+                                        "id": {"type": "string"},
+                                        "label": {"type": "string"},
+                                        "type": {"type": "string"},
+                                        "summary": {"type": "string"},
+                                        "properties": {"type": "object"},
+                                        "source_chunk_ids": {"type": "array", "items": {"type": "string"}},
+                                    },
+                                },
+                            },
+                            "edges": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "required": ["source", "target"],
+                                    "properties": {
+                                        "source": {"type": "string"},
+                                        "target": {"type": "string"},
+                                        "type": {"type": "string"},
+                                        "properties": {"type": "object"},
+                                        "source_chunk_ids": {"type": "array", "items": {"type": "string"}},
+                                    },
+                                },
+                            },
+                            "diagnostics": {"type": "boolean", "default": False},
+                        },
+                    },
+                ),
+                Tool(
+                    name="containers_graph_schema",
+                    description="Retrieve graph schema (labels/relationship types) for a container.",
+                    inputSchema={
+                        "type": "object",
+                        "required": ["container"],
+                        "properties": {
+                            "container": {"type": "string", "description": "Container UUID or slug"}
+                        },
+                    },
+                ),
+                Tool(
                     name="jobs_status",
                     description=(
                         "Check status of ingestion jobs. "
@@ -255,6 +339,9 @@ class LLCMCPGateway:
             "containers_describe": "/v1/containers/describe",
             "containers_search": "/v1/search",
             "containers_add": "/v1/containers/add",
+            "containers_graph_search": "/v1/containers/graph_search",
+            "containers_graph_upsert": "/v1/containers/graph_upsert",
+            "containers_graph_schema": "/v1/containers/graph_schema",
             "jobs_status": "/v1/jobs/status",
         }
 
@@ -268,7 +355,10 @@ class LLCMCPGateway:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
 
-        response = await self.client.post(url, json=arguments, headers=headers)
+        if name == "containers_graph_schema":
+            response = await self.client.get(url, params=arguments, headers=headers)
+        else:
+            response = await self.client.post(url, json=arguments, headers=headers)
 
         if response.status_code != 200:
             error_detail = response.text
@@ -319,4 +409,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

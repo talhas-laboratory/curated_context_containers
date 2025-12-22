@@ -2,13 +2,15 @@
  * React Query hooks for container operations
  */
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { get, post } from '../mcp-client';
+import { useMutation, useQuery, useQueryClient, UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';
+import { MCPError, post } from '../mcp-client';
 import type {
   ListContainersRequest,
   ListContainersResponse,
   DescribeContainerRequest,
   DescribeContainerResponse,
+  CreateContainerRequest,
+  ContainerLifecycleResponse,
 } from '../types';
 
 /**
@@ -31,6 +33,31 @@ export function useListContainers(
     },
     staleTime: 30 * 1000, // 30 seconds
     ...options,
+  });
+}
+
+/**
+ * Create a new container
+ */
+export function useCreateContainer(
+  options?: Omit<
+    UseMutationOptions<ContainerLifecycleResponse, MCPError, CreateContainerRequest>,
+    'mutationFn'
+  >
+) {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...restOptions } = options || {};
+
+  return useMutation<ContainerLifecycleResponse, MCPError, CreateContainerRequest>({
+    mutationFn: async (payload) => {
+      const response = await post<ContainerLifecycleResponse>('/v1/containers/create', payload);
+      return response;
+    },
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
+      onSuccess?.(data, variables, context);
+    },
+    ...restOptions,
   });
 }
 

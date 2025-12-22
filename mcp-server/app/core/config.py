@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     google_api_key: str = Field(default="", repr=False)
     google_embed_model: str = Field(default="models/text-embedding-004")
     embedding_dims: int = Field(default=768)
+    nomic_image_model: str = Field(default="nomic-embed-image-v1")
     semantic_dedup_threshold: float = Field(default=0.96)
     embedding_cache_ttl_seconds: int = Field(default=60 * 60 * 24 * 7)
     search_latency_budget_ms: int = Field(default=900)
@@ -29,10 +30,32 @@ class Settings(BaseSettings):
     rerank_timeout_ms: int = Field(default=200)
     rerank_top_k_in: int = Field(default=50)
     rerank_top_k_out: int = Field(default=10)
+    rerank_cache_ttl_seconds: int = Field(default=300)
+    rerank_cache_size: int = Field(default=256)
     mcp_token_path: str = Field(default="docker/mcp_token.txt")
     mcp_token: str | None = Field(default=None, repr=False)
     manifests_path: str = Field(default="manifests")
     default_principal: str = Field(default="agent:local")
+    neo4j_uri: str = Field(default="bolt://neo4j:7687")
+    neo4j_user: str = Field(default="neo4j")
+    neo4j_password: str = Field(default="localneo4j", repr=False)
+    graph_max_hops_default: int = Field(default=2)
+    graph_query_timeout_ms: int = Field(default=1200)
+    graph_enable_raw_cypher: bool = Field(default=True)
+    graph_nl2cypher_enabled: bool = Field(default=False)
+    graph_nl2cypher_url: str = Field(default="", description="Endpoint for NL→Cypher model")
+    graph_nl2cypher_api_key: str | None = Field(default=None, repr=False)
+    # Use a faster default model to avoid timeouts in clients with ~10s ceilings.
+    graph_nl2cypher_model: str = Field(
+        default="anthropic/claude-3-haiku",
+        description="OpenRouter model id for NL→Cypher translation",
+    )
+    # Keep this below common client/tool timeouts; 8s is a safer ceiling than 12s.
+    graph_nl2cypher_timeout_ms: int = Field(default=8000)
+    admin_fastpath: bool = Field(
+        default=True,
+        description="When true, admin refresh/export jobs are marked done immediately (dev/test convenience)",
+    )
 
     @property
     def async_postgres_dsn(self) -> str:

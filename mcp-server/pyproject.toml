@@ -23,7 +23,8 @@ dependencies = [
   "python-json-logger>=2.0",
   "tenacity>=8.3",
   "prometheus-client>=0.20",
-  "alembic>=1.13"
+  "alembic>=1.13",
+  "neo4j>=5.23"
 ]
 
 [tool.hatch.build.targets.wheel]

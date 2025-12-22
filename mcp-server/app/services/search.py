@@ -1,13 +1,15 @@
 """Search service implementing manifest-aware retrieval."""
 from __future__ import annotations
 
+import base64
 import logging
 import math
+import inspect
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +20,9 @@ from app.core.config import get_settings
 from app.core.metrics import observe_search
 from app.db.models import Chunk, Container, Document
 from app.models.search import SearchRequest, SearchResponse, SearchResult
+from app.models.graph import GraphSearchRequest
 from app.services import manifests
+from app.services import graph as graph_service
 from app.services.diagnostics import baseline_diagnostics, stage_timer, summarize_timings
 from app.services.fusion import reciprocal_rank_fusion
 
@@ -293,17 +297,23 @@ async def _vector_stage(
     container_ids: List[UUID] | None,
     container_map: dict,
     modalities: Dict[str, List[str]],
+    query_vector: List[float] | None = None,
 ) -> Tuple[List[SearchResult], List[str], object, object, List[str]]:
     embed_timer = stage_timer("embed")
     embed_issue: List[str] = []
-    try:
-        vector = (await embedding_client.embed_text([request.query or ""]))[0]
-    except EmbeddingError as exc:  # pragma: no cover - defensive runtime path
-        LOGGER.error("embedding_failed", exc_info=exc)
-        embed_timer.stop()
-        vector_timer = stage_timer("vector")
-        vector_timer.stop()
-        return [], [], embed_timer, vector_timer, ["VECTOR_DOWN"]
+    vector: List[float] | None = query_vector
+    if vector is None:
+        try:
+            if request.query_image_base64:
+                vector = (await embedding_client.embed_image([base64.b64decode(request.query_image_base64)]))[0]
+            else:
+                vector = (await embedding_client.embed_text([request.query or ""]))[0]
+        except (EmbeddingError, Exception) as exc:  # pragma: no cover - defensive runtime path
+            LOGGER.error("embedding_failed", exc_info=exc)
+            embed_timer.stop()
+            vector_timer = stage_timer("vector")
+            vector_timer.stop()
+            return [], [], embed_timer, vector_timer, ["VECTOR_DOWN"]
     embed_timer.stop()
     target_containers = container_ids or [UUID(hex_id) for hex_id in container_map.keys()]
     vector_timer = stage_timer("vector")
@@ -328,11 +338,57 @@ async def _vector_stage(
 
 async def search_response(session: AsyncSession, request: SearchRequest) -> SearchResponse:
     request_id = str(uuid4())
-    container_ids = [UUID(cid) for cid in request.container_ids] if request.container_ids else None
+    container_id_filters = request.container_ids or []
+    container_uuid_filters: list[UUID] = []
+    container_name_filters: list[str] = []
+    for cid in container_id_filters:
+        try:
+            container_uuid_filters.append(UUID(cid))
+        except Exception:
+            container_name_filters.append(cid)
     diagnostics = baseline_diagnostics(request.mode, request.container_ids)
+    if request.query_image_base64 and request.query:
+        diagnostics["query_type"] = "mixed"
+    elif request.query_image_base64:
+        diagnostics["query_type"] = "image"
+    else:
+        diagnostics["query_type"] = "text"
+    if request.mode == "graph":
+        # Graph-only path: call graph search and return graph_context envelope.
+        primary_container = request.container_ids[0] if request.container_ids else ""
+        graph_req = GraphSearchRequest(
+            container=primary_container,
+            query=request.query,
+            mode="nl",
+            max_hops=(request.graph or {}).get("max_hops", 2) if request.graph else 2,
+            k=request.k,
+            diagnostics=request.diagnostics,
+        )
+        graph_resp = await graph_service.graph_search(session, graph_req)
+        issues = list(graph_resp.issues)
+        diagnostics.update(graph_resp.diagnostics or {})
+        diagnostics["graph_hits"] = len(graph_resp.nodes)
+        timings_ms = graph_resp.timings_ms or {}
+        return SearchResponse(
+            request_id=request_id,
+            query=request.query,
+            results=[],
+            total_hits=0,
+            returned=0,
+            diagnostics=diagnostics,
+            timings_ms=timings_ms,
+            issues=issues or [],
+            graph_context={
+                "nodes": [n.model_dump() for n in graph_resp.nodes],
+                "edges": [e.model_dump() for e in graph_resp.edges],
+                "snippets": graph_resp.snippets,
+            },
+        )
     expand_timer = stage_timer("expand")
     expanded_queries = _expand_query(request.query or "")
     expand_timer.stop()
+    if not expanded_queries:
+        expanded_queries = [request.query or ""]
     diagnostics["expanded_queries"] = expanded_queries
     diagnostics["expansion_count"] = len(expanded_queries)
     LOGGER.info(
@@ -346,8 +402,13 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     )
 
     container_stmt = select(Container).where(Container.state != "archived")
-    if container_ids:
-        container_stmt = container_stmt.where(Container.id.in_(container_ids))
+    if container_uuid_filters or container_name_filters:
+        predicates = []
+        if container_uuid_filters:
+            predicates.append(Container.id.in_(container_uuid_filters))
+        if container_name_filters:
+            predicates.append(Container.name.in_(container_name_filters))
+        container_stmt = container_stmt.where(or_(*predicates))
     containers = (await session.execute(container_stmt)).scalars().all()
     manifest_map: Dict[str, dict] = {}
     container_map = {}
@@ -406,10 +467,13 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     # Collect results over expanded queries; include original query as-is.
     aggregate_results: Dict[str, SearchResult] = {}
     original_query = request.query or ""
+    precomputed_image_vector: List[float] | None = None
+    vector_stage_fn = _vector_stage
+    vector_supports_query = "query_vector" in inspect.signature(vector_stage_fn).parameters
     for expanded_query in expanded_queries:
         local_request = request.model_copy(update={"query": expanded_query})
 
-        if request.mode in ("bm25", "hybrid"):
+        if request.mode in ("bm25", "hybrid", "crossmodal") and local_request.query:
             bm25_results, bm25_ranking, bm25_timer = await _bm25_stage(
                 session, local_request, target_container_ids, container_map, modality_allowlist
             )
@@ -419,10 +483,32 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
             bm25_results = []
             bm25_ranking = []
 
-        if request.mode in ("semantic", "hybrid"):
-            vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await _vector_stage(
-                session, local_request, target_container_ids, container_map, modality_allowlist
-            )
+        if request.mode in ("semantic", "hybrid", "crossmodal"):
+            if request.query_image_base64 and precomputed_image_vector is None:
+                # compute once for image queries
+                try:
+                    precomputed_image_vector = (await embedding_client.embed_image([base64.b64decode(request.query_image_base64)]))[0]
+                except Exception as exc:  # pragma: no cover - runtime guard
+                    LOGGER.error("embedding_failed", exc_info=exc)
+                    issues.append("VECTOR_DOWN")
+                    precomputed_image_vector = None
+            if vector_supports_query:
+                vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await vector_stage_fn(
+                    session,
+                    local_request,
+                    target_container_ids,
+                    container_map,
+                    modality_allowlist,
+                    query_vector=precomputed_image_vector,
+                )
+            else:
+                vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await vector_stage_fn(
+                    session,
+                    local_request,
+                    target_container_ids,
+                    container_map,
+                    modality_allowlist,
+                )
             timers.extend([embed_timer, vector_timer])
             diagnostics["vector_hits"] = diagnostics.get("vector_hits", 0) + len(vector_results)
             issues.extend(embed_issues)
@@ -435,7 +521,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
             combined = vector_results
         elif request.mode == "bm25":
             combined = bm25_results
-        elif request.mode == "hybrid":
+        elif request.mode in ("hybrid", "crossmodal"):
             fusion_timer = stage_timer("fusion")
             fusion_scores = reciprocal_rank_fusion([bm25_ranking, vector_ranking])
             tmp: dict[str, SearchResult] = {res.chunk_id: res for res in bm25_results + vector_results}
@@ -477,11 +563,17 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     timings = summarize_timings(timers + [pseudo_timer])
     timings["expand_ms"] = expand_timer.duration_ms
 
+    if rerank_enabled and not request.query and request.query_image_base64:
+        diagnostics["rerank_applied"] = False
+        diagnostics["rerank_skipped"] = "no_text_query"
+        issues.append("RERANK_SKIPPED_NO_TEXT")
+        rerank_enabled = False
+
     if rerank_enabled and final_results:
         rerank_timer = stage_timer("rerank")
         try:
             final_results, rerank_diags, rerank_issues = await rerank_adapter.rerank(
-                query=request.query,
+                query=request.query or "",
                 candidates=final_results,
                 top_k_in=rerank_top_k_in,
                 top_k_out=min(rerank_top_k_out, request.k),
@@ -500,6 +592,30 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
 
     timings = summarize_timings(timers)
     timings["expand_ms"] = expand_timer.duration_ms
+    graph_context = None
+    if request.mode == "hybrid_graph":
+        primary_container = request.container_ids[0] if request.container_ids else ""
+        neighbor_k = int((request.graph or {}).get("neighbor_k") or 10)
+        max_hops = int((request.graph or {}).get("max_hops") or settings.graph_max_hops_default)
+        chunk_ids = [res.chunk_id for res in final_results[:neighbor_k]]
+        graph_resp = await graph_service.graph_expand_from_chunks(
+            session=session,
+            container_ref=primary_container,
+            chunk_ids=chunk_ids,
+            max_hops=max_hops,
+            k=neighbor_k,
+        )
+        graph_context = {
+            "nodes": [n.model_dump() for n in graph_resp.nodes],
+            "edges": [e.model_dump() for e in graph_resp.edges],
+            "snippets": graph_resp.snippets,
+        }
+        diagnostics.update(graph_resp.diagnostics or {})
+        diagnostics["graph_hits"] = len(graph_resp.nodes)
+        if graph_resp.timings_ms:
+            timings.update(graph_resp.timings_ms)
+        issues.extend(graph_resp.issues or [])
+
     total_ms = timings.get("total_ms", 0)
     over_budget = max(total_ms - latency_budget, 0)
     diagnostics["containers"] = request.container_ids or list(container_map.keys())
@@ -521,6 +637,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
         diagnostics=diagnostics,
         issues=issues,
         partial=over_budget > 0,
+        graph_context=graph_context,
     )
     observe_search(
         request.mode,
