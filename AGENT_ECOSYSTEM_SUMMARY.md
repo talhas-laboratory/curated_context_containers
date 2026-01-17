@@ -303,7 +303,7 @@ alembic upgrade head
 
 2. Set token:
    ```bash
-   export LLC_TOKEN=$(cat docker/mcp_token.txt)
+   export LLC_TOKEN="your-token-here"
    ```
 
 3. Run example:

@@ -32,7 +32,7 @@ Local Latent Containers provides three ways for agents to access your curated co
 ### Prerequisites
 
 1. LLC backend running at `http://localhost:7801`
-2. MCP token from `docker/mcp_token.txt`
+2. MCP token set in your environment (`LLC_MCP_TOKEN` for gateway or `LLC_TOKEN` for SDK usage)
 3. Python 3.11+ (for SDK/integrations)
 
 ### Quick Setup
@@ -42,11 +42,9 @@ Local Latent Containers provides three ways for agents to access your curated co
 cd /path/to/curated_context_containers
 make up
 
-# 2. Get your token
-cat docker/mcp_token.txt
-
-# 3. Set environment
+# 2. Set environment
 export LLC_BASE_URL="http://localhost:7801"
+export LLC_MCP_TOKEN="your-token-here"
 export LLC_TOKEN="your-token-here"
 ```
 
@@ -515,8 +513,7 @@ make up
 
 Verify token:
 ```bash
-cat docker/mcp_token.txt
-export LLC_TOKEN="$(cat docker/mcp_token.txt)"
+export LLC_TOKEN="your-token-here"
 ```
 
 ### "Container not found"
@@ -534,6 +531,19 @@ For issues and questions:
 - **Documentation**: `single_source_of_truth/`
 - **Examples**: `examples/agents/`
 - **API Contracts**: `single_source_of_truth/architecture/API_CONTRACTS.md`
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

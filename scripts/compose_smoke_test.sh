@@ -5,12 +5,12 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker/compose.local.yaml"
 export LLC_POSTGRES_DSN=${LLC_POSTGRES_DSN:-"postgresql://local:localpw@localhost:5433/registry"}
 POSTGRES_DSN="$LLC_POSTGRES_DSN"
-MCP_TOKEN_PATH=${MCP_TOKEN_PATH:-"$ROOT_DIR/docker/mcp_token.txt"}
+MCP_TOKEN="${MCP_TOKEN:-${LLC_MCP_TOKEN:-}}"
 
-if [[ -z "${MCP_TOKEN:-}" && -f "$MCP_TOKEN_PATH" ]]; then
+if [[ -z "${MCP_TOKEN:-}" && -n "${MCP_TOKEN_PATH:-}" && -f "$MCP_TOKEN_PATH" ]]; then
   MCP_TOKEN=$(cat "$MCP_TOKEN_PATH")
 fi
-: "${MCP_TOKEN:=}"
+MCP_TOKEN="${MCP_TOKEN:-}"
 
 AUTH_HEADER=()
 if [[ -n "${MCP_TOKEN:-}" ]]; then

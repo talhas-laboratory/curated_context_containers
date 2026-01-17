@@ -236,7 +236,7 @@ async def main():
     token = os.getenv("LLC_TOKEN")
     if not token:
         print("❌ Error: LLC_TOKEN environment variable not set")
-        print("   Set it with: export LLC_TOKEN=$(cat docker/mcp_token.txt)")
+        print("   Set it with: export LLC_TOKEN=\"your-token-here\"")
         return 1
 
     async with ResearchAgent(token=token) as agent:
@@ -289,6 +289,19 @@ async def main():
 if __name__ == "__main__":
     exit_code = asyncio.run(main())
     sys.exit(exit_code)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

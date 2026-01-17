@@ -186,7 +186,7 @@ Local Latent Containers is a local-first retrieval system that exposes a determi
 
 ## Security & Access Control
 
-- **Auth:** Bearer token validated per request (see `API_CONTRACTS.md`). Token stored in `docker/mcp_token.txt` or env var.
+- **Auth:** Bearer token validated per request (see `API_CONTRACTS.md`). Token stored in env or a secrets manager.
 - **Transport:** Localhost only. For remote use, place behind reverse proxy + TLS.
 - **Network Isolation:** Only MCP container publishes a port. Others stay on private network.
 - **Input Validation:** Whitelists ingestion schemes (https://, file:// local). Optional domain allowlist per container.

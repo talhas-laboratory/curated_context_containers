@@ -217,9 +217,6 @@ export LLC_BASE_URL="http://localhost:7801"
 
 # Authentication token
 export LLC_TOKEN="your-token-here"
-
-# Get token from docker setup
-cat ../docker/mcp_token.txt
 ```
 
 ### Token Management
@@ -231,10 +228,6 @@ session = AgentSession(agent_id="bot", token="explicit-token")
 # From environment
 session = AgentSession(agent_id="bot")  # Uses LLC_TOKEN
 
-# From file
-with open("../docker/mcp_token.txt") as f:
-    token = f.read().strip()
-session = AgentSession(agent_id="bot", token=token)
 ```
 
 ## Advanced Usage
@@ -340,6 +333,19 @@ pytest
 ## License
 
 MIT
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

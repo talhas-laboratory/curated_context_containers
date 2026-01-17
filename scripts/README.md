@@ -4,6 +4,7 @@ Utility scripts (CLI helpers, golden query runners, data loaders) live here.
 
 - `bootstrap_db.sh` — applies the canonical SQL schema via `psql`
 - `compose_smoke_test.sh` — spins up the docker stack, bootstraps the DB, and hits MCP health/list/search endpoints (with a sample ingest)
+- `deploy_home_server.sh` — prepares `/srv/llc`, syncs manifests, and boots the home server compose stack
 - `run_golden_queries.sh` — executes `golden_queries.json` against the MCP search endpoint, emits `.artifacts/golden_summary.json`, and fails if any query exceeds `--budget-ms` (latency budget)
 - `frontend/tests/e2e/search.spec.ts` — Playwright smoke for the frontend search flow (requires `frontend/node_modules/playwright`; run via `cd frontend && npm run e2e:search`)
 
@@ -19,7 +20,7 @@ Utility scripts (CLI helpers, golden query runners, data loaders) live here.
 
 Environment:
 - `MCP_URL` defaults to `http://localhost:7801`
-- `MCP_TOKEN` or `docker/mcp_token.txt` for bearer auth
+- `MCP_TOKEN` or `LLC_MCP_TOKEN` for bearer auth
 - `GOLDEN_QUERIES_SUMMARY` overrides artifact output path (default `.artifacts/golden_summary.json`)
 - `JUDGMENTS_PATH` (or `--judgments`) optional JSON map of query IDs to doc_id relevances for nDCG/recall
 - `BUDGET_P95_MS` optional aggregate latency guard (fails if p95 exceeds)

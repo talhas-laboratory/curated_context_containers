@@ -7,7 +7,7 @@ Purpose: Ship contract, integration, smoke, golden, and CI automation such that 
 - Data model: `single_source_of_truth/architecture/DATA_MODEL.md`
 - Existing scripts: `scripts/bootstrap_db.sh`, `scripts/compose_smoke_test.sh`, `run_golden_queries.sh` (to extend)
 - Services: `/v1/containers/add`, `/v1/search`, Postgres DSN `LLC_POSTGRES_DSN`, Qdrant `LLC_QDRANT_URL`, MinIO `LLC_MINIO_*`
-- Auth: bearer token `docker/mcp_token.txt` or `LLC_MCP_TOKEN`
+- Auth: bearer token `LLC_MCP_TOKEN`
 
 ## 1) Integration test (backend, real deps)
 - [x] Create `mcp-server/tests/test_integration_search.py` (or similar) that:

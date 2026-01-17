@@ -244,7 +244,7 @@ No changes required. UI and existing API remain unchanged.
 ### For New Agent Users
 
 1. Install MCP gateway or Python SDK
-2. Get token from `docker/mcp_token.txt`
+2. Get the MCP token from your environment or secrets store
 3. Configure client/gateway with token
 4. Start using tools/SDK
 
@@ -295,6 +295,19 @@ We will measure success via:
 Agent access transforms LLC from a human-only tool into a **multi-agent collaboration platform**. The three-tier access pattern (MCP, SDK, frameworks) provides flexibility for different use cases, while lifecycle and collaboration APIs enable sophisticated multi-agent workflows.
 
 This architecture positions LLC as infrastructure for **agentic systems** where autonomous agents curate, search, and collaborate on shared knowledge bases.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

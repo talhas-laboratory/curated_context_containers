@@ -56,7 +56,7 @@ cp /Users/talhauddin/software/curated_context_containers/mcp-server-gateway/clau
       ],
       "env": {
         "LLC_BASE_URL": "http://localhost:7801",
-        "LLC_MCP_TOKEN": "dev-token-ef419ff5fd8889ce5c892c212494a492"
+        "LLC_MCP_TOKEN": "your-token-here"
       }
     }
   }
@@ -157,7 +157,7 @@ which python3
 cd /Users/talhauddin/software/curated_context_containers
 # Check existing containers
 curl -X POST http://localhost:7801/v1/containers/list \
-  -H "Authorization: Bearer dev-token-ef419ff5fd8889ce5c892c212494a492" \
+  -H "Authorization: Bearer $LLC_MCP_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"state": "active"}'
 ```
@@ -168,10 +168,8 @@ curl -X POST http://localhost:7801/v1/containers/list \
 
 **Fix:** Verify token:
 ```bash
-cat /Users/talhauddin/software/curated_context_containers/docker/mcp_token.txt
+echo "$LLC_MCP_TOKEN"
 ```
-
-Should be: `dev-token-ef419ff5fd8889ce5c892c212494a492`
 
 ### Check MCP Server Logs
 
@@ -187,7 +185,7 @@ Or test the MCP server directly:
 ```bash
 cd /Users/talhauddin/software/curated_context_containers/mcp-server-gateway
 LLC_BASE_URL="http://localhost:7801" \
-LLC_MCP_TOKEN="dev-token-ef419ff5fd8889ce5c892c212494a492" \
+LLC_MCP_TOKEN="your-token-here" \
 python -m llc_mcp_gateway.server
 # Should start without errors
 # Press Ctrl+C to stop
@@ -255,7 +253,7 @@ Once this works, you can:
 
 **Token:**
 ```
-dev-token-ef419ff5fd8889ce5c892c212494a492
+your-token-here
 ```
 
 **API Endpoint:**

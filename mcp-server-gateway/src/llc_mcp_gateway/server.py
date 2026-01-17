@@ -21,9 +21,13 @@ class LLCMCPGateway:
         self,
         base_url: str = "http://localhost:7801",
         token: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        agent_name: Optional[str] = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.token = token or os.getenv("LLC_MCP_TOKEN", "")
+        self.agent_id = agent_id or os.getenv("LLC_AGENT_ID")
+        self.agent_name = agent_name or os.getenv("LLC_AGENT_NAME")
         self.client = httpx.AsyncClient(timeout=30.0)
         self.server = Server("llc-mcp-gateway")
 
@@ -166,6 +170,76 @@ class LLCMCPGateway:
                                         "description": "Filter by metadata key-value pairs",
                                     },
                                 },
+                            },
+                        },
+                    },
+                ),
+                Tool(
+                    name="containers_create",
+                    description=(
+                        "Create a new container with theme, modalities, and retrieval policy. "
+                        "Use this to bootstrap a fresh container before adding sources."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "required": ["name", "theme"],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Unique container name (slug)",
+                            },
+                            "theme": {
+                                "type": "string",
+                                "description": "Container theme/topic",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Optional description",
+                            },
+                            "modalities": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "default": ["text"],
+                                "description": "Allowed modalities (text, image, pdf, etc.)",
+                            },
+                            "embedder": {
+                                "type": "string",
+                                "default": "google-gemma3-text",
+                                "description": "Embedder model",
+                            },
+                            "embedder_version": {
+                                "type": "string",
+                                "default": "1.0.0",
+                                "description": "Embedder version",
+                            },
+                            "dims": {
+                                "type": "integer",
+                                "default": 768,
+                                "description": "Embedding dimensions",
+                            },
+                            "policy": {
+                                "type": "object",
+                                "default": {},
+                                "description": "Retrieval policy overrides",
+                            },
+                            "mission_context": {
+                                "type": "string",
+                                "description": "Why this container exists",
+                            },
+                            "visibility": {
+                                "type": "string",
+                                "enum": ["private", "team", "public"],
+                                "default": "private",
+                            },
+                            "collaboration_policy": {
+                                "type": "string",
+                                "enum": ["read-only", "contribute"],
+                                "default": "read-only",
+                            },
+                            "auto_refresh": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Auto-update on manifest changes",
                             },
                         },
                     },
@@ -338,6 +412,7 @@ class LLCMCPGateway:
             "containers_list": "/v1/containers/list",
             "containers_describe": "/v1/containers/describe",
             "containers_search": "/v1/search",
+            "containers_create": "/v1/containers/create",
             "containers_add": "/v1/containers/add",
             "containers_graph_search": "/v1/containers/graph_search",
             "containers_graph_upsert": "/v1/containers/graph_upsert",
@@ -354,6 +429,10 @@ class LLCMCPGateway:
         headers = {"Content-Type": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
+        if self.agent_id:
+            headers["X-Agent-ID"] = self.agent_id
+        if self.agent_name:
+            headers["X-Agent-Name"] = self.agent_name
 
         if name == "containers_graph_schema":
             response = await self.client.get(url, params=arguments, headers=headers)

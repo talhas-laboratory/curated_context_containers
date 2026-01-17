@@ -33,12 +33,12 @@ fi
 # Step 2: Get token
 echo ""
 echo "Step 2: Reading token..."
-TOKEN_FILE="$PROJECT_ROOT/docker/mcp_token.txt"
-if [ -f "$TOKEN_FILE" ]; then
-    TOKEN=$(cat "$TOKEN_FILE")
-    echo -e "${GREEN}✓ Token found: ${TOKEN}${NC}"
+TOKEN="${LLC_MCP_TOKEN:-}"
+if [ -n "$TOKEN" ]; then
+    echo -e "${GREEN}✓ Token found in LLC_MCP_TOKEN${NC}"
 else
-    echo -e "${RED}✗ Token file not found: $TOKEN_FILE${NC}"
+    echo -e "${RED}✗ LLC_MCP_TOKEN not set${NC}"
+    echo "Export LLC_MCP_TOKEN before running this script."
     exit 1
 fi
 
@@ -176,6 +176,19 @@ echo "For troubleshooting, see:"
 echo "  $PROJECT_ROOT/CLAUDE_DESKTOP_SETUP.md"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

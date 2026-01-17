@@ -20,16 +20,20 @@ def _load_expected_token() -> str:
     if settings.mcp_token:
         return settings.mcp_token.strip()
 
-    token_path = Path(settings.mcp_token_path)
-    if not token_path.exists():
-        raise RuntimeError(
-            f"MCP token file not found at {token_path}. "
-            "Configure LLC_MCP_TOKEN or place the token file before starting the server."
-        )
-    token = token_path.read_text().strip()
-    if not token:
-        raise RuntimeError(f"MCP token file at {token_path} is empty.")
-    return token
+    token_path_value = (settings.mcp_token_path or "").strip()
+    if token_path_value:
+        token_path = Path(token_path_value)
+        if not token_path.exists():
+            raise RuntimeError(
+                f"MCP token file not found at {token_path}. "
+                "Configure LLC_MCP_TOKEN or provide a valid token path."
+            )
+        token = token_path.read_text().strip()
+        if not token:
+            raise RuntimeError(f"MCP token file at {token_path} is empty.")
+        return token
+
+    raise RuntimeError("LLC_MCP_TOKEN must be set to start the MCP server.")
 
 
 def verify_bearer_token(

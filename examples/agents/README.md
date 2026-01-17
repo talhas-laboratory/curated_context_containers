@@ -18,7 +18,7 @@ Example AI agents demonstrating different patterns for interacting with Local La
 
 3. **Token Set**
    ```bash
-   export LLC_TOKEN=$(cat ../docker/mcp_token.txt)
+   export LLC_TOKEN="your-token-here"
    ```
 
 ## Examples
@@ -261,8 +261,7 @@ make up
 ### "Authentication failed"
 ```bash
 # Verify token
-cat ../docker/mcp_token.txt
-export LLC_TOKEN=$(cat ../docker/mcp_token.txt)
+export LLC_TOKEN="your-token-here"
 ```
 
 ### "Container not found"
@@ -278,6 +277,19 @@ for c in containers:
 - Read the [Agent Quickstart Guide](../../docs/AGENT_QUICKSTART.md)
 - Explore the [Python SDK](../../agents-sdk/README.md)
 - Review [API Contracts](../../single_source_of_truth/architecture/API_CONTRACTS.md)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

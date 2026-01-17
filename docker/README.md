@@ -15,3 +15,9 @@ Once running:
 - Neo4j: bolt://localhost:7687 (http://localhost:7474 browser, auth `neo4j/localneo4j`)
 
 The compose file references the Postgres-backed job queue decision from ADR-001 and keeps the stack within MacBook Air resource limits.
+
+## Security Notes (Home Server)
+- Keep access VPN-only (Tailscale); do not expose services publicly.
+- Restrict inbound HTTP to `tailscale0` via ufw.
+- Store `LLC_MCP_TOKEN` and API keys in `docker/.env.home` or a secrets manager.
+- Avoid committing tokens to the repo or sharing them in plaintext.

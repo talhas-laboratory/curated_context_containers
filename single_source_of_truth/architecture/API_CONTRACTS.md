@@ -35,7 +35,7 @@ All responses share the envelope:
 ## Authentication
 
 - Header: `Authorization: Bearer <TOKEN>`
-- Token location: `docker/mcp_token.txt` or `MCP_TOKEN` env var
+- Token location: `LLC_MCP_TOKEN` env var (or `MCP_TOKEN` for compatibility)
 - When auth disabled (local prototyping), header is ignored but warning logged
 - Failed auth returns `401` with `error.code = "AUTH_FAILED"`
 

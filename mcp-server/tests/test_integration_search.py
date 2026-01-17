@@ -46,9 +46,6 @@ def _load_token() -> str | None:
     token = os.getenv("LLC_MCP_TOKEN")
     if token:
         return token.strip()
-    token_path = REPO_ROOT / "docker" / "mcp_token.txt"
-    if token_path.exists():
-        return token_path.read_text().strip()
     return None
 
 
@@ -175,7 +172,7 @@ def test_ingest_and_search_against_real_stack():
 
     token = _load_token()
     if not token:
-        pytest.skip("Missing LLC_MCP_TOKEN and docker/mcp_token.txt")
+        pytest.skip("Missing LLC_MCP_TOKEN")
 
     _require_stack()
     _bootstrap_database()
@@ -204,7 +201,7 @@ def test_pdf_ingest_and_search_against_real_stack():
 
     token = _load_token()
     if not token:
-        pytest.skip("Missing LLC_MCP_TOKEN and docker/mcp_token.txt")
+        pytest.skip("Missing LLC_MCP_TOKEN")
 
     _require_stack()
     _bootstrap_database()

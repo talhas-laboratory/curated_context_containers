@@ -5,7 +5,6 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 QUERIES_JSON="$ROOT_DIR/golden_queries.json"
 MCP_URL=${MCP_URL:-"http://localhost:7801"}
 OUTPUT_PATH=${GOLDEN_QUERIES_SUMMARY:-"$ROOT_DIR/.artifacts/golden_summary.json"}
-MCP_TOKEN_PATH=${MCP_TOKEN_PATH:-"$ROOT_DIR/docker/mcp_token.txt"}
 BUDGET_MS=""
 JUDGMENTS_PATH=""
 BUDGET_P95_MS=""
@@ -60,10 +59,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${MCP_TOKEN:-}" && -f "$MCP_TOKEN_PATH" ]]; then
-  export MCP_TOKEN=$(cat "$MCP_TOKEN_PATH")
+MCP_TOKEN="${MCP_TOKEN:-${LLC_MCP_TOKEN:-}}"
+if [[ -z "${MCP_TOKEN:-}" && -n "${MCP_TOKEN_PATH:-}" && -f "$MCP_TOKEN_PATH" ]]; then
+  MCP_TOKEN=$(cat "$MCP_TOKEN_PATH")
 fi
-: "${MCP_TOKEN:=}"
+MCP_TOKEN="${MCP_TOKEN:-}"
 export MCP_TOKEN
 export BUDGET_MS
 export JUDGMENTS_PATH

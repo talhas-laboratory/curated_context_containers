@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 import os
 
 import pytest
@@ -25,9 +24,6 @@ def _load_test_token() -> str:
     token = os.getenv("LLC_MCP_TOKEN")
     if token:
         return token
-    token_path = Path(__file__).resolve().parents[2] / "docker" / "mcp_token.txt"
-    if token_path.exists():
-        return token_path.read_text().strip()
     return "local-dev-token"
 
 

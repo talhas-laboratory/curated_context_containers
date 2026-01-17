@@ -53,7 +53,6 @@ services:
       LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
       LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
       LLC_MCP_TOKEN: ${LLC_MCP_TOKEN:-}
-      LLC_MCP_TOKEN_PATH: /app/docker/mcp_token.txt
       LLC_NEO4J_URI: ${LLC_NEO4J_URI:-bolt://neo4j:7687}
       LLC_NEO4J_USER: ${LLC_NEO4J_USER:-neo4j}
       LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
@@ -73,7 +72,6 @@ services:
       - minio
       - neo4j
     volumes:
-      - ../docker:/app/docker:ro
       - ../manifests:/app/manifests:ro
 
   workers:

@@ -6,7 +6,7 @@
 
 ## Prerequisites
 - Tooling: Docker + docker-compose, Python 3.11, Node 18+, npm, psql client, curl.
-- Secrets: `LLC_MCP_TOKEN` or `docker/mcp_token.txt`; optional `NOMIC_API_KEY` if you want real embeddings (falls back to zeros otherwise).
+- Secrets: `LLC_MCP_TOKEN`; optional `NOMIC_API_KEY` if you want real embeddings (falls back to zeros otherwise).
 - Ports free: 5433 (Postgres), 6333/6334 (Qdrant), 9000/9001 (MinIO), 7801 (MCP API), 3000 (frontend).
 
 ## Environment

@@ -659,16 +659,16 @@ Agents (Claude, ChatGPT, custom) call this endpoint on initialization to learn w
 
 # Authentication Flow (Local First)
 
-**Token generation and validation**
+**Token configuration and validation**
 
-On first startup, the MCP server generates a secure random bearer token for local use.
+The MCP server requires a bearer token to be configured via environment or a secrets
+store (no repo-managed token files).
 
 ## Token Bootstrap
 
-1. On startup, check if `docker/mcp_token.txt` exists
-2. If not, generate: `secrets.token_urlsafe(32)`
-3. Write to `docker/mcp_token.txt` (mounted volume)
-4. Set permissions: `chmod 600 docker/mcp_token.txt`
+1. Set `LLC_MCP_TOKEN` in your environment or `.env.home`
+2. Ensure clients send `Authorization: Bearer <token>`
+3. Do not commit tokens to the repository
 
 ## Token Validation
 
@@ -682,12 +682,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pathlib import Path
 
 security = HTTPBearer()
-TOKEN_PATH = Path("/app/docker/mcp_token.txt")
 
 def load_token() -> str:
-    if TOKEN_PATH.exists():
-        return TOKEN_PATH.read_text().strip()
-    raise RuntimeError("MCP token not found. Server not properly initialized.")
+    token = os.getenv("LLC_MCP_TOKEN")
+    if token:
+        return token.strip()
+    raise RuntimeError("LLC_MCP_TOKEN is required to start the server.")
 
 def verify_bearer_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
     expected_token = load_token()
@@ -715,7 +715,7 @@ async def list_containers(authenticated: bool = Depends(verify_bearer_token)):
 
 ```bash
 # Export token for CLI scripts
-export MCP_TOKEN=$(cat docker/mcp_token.txt)
+export MCP_TOKEN="$LLC_MCP_TOKEN"
 
 # Use in requests
 curl -H "Authorization: Bearer $MCP_TOKEN" http://localhost:7801/v1/containers/list
@@ -1772,7 +1772,7 @@ if __name__ == "__main__":
 
 ```bash
 # Before deploying embedder upgrade
-export MCP_TOKEN=$(cat docker/mcp_token.txt)
+export MCP_TOKEN="$LLC_MCP_TOKEN"
 python scripts/eval_container.py expressionist-art
 
 if [ $? -ne 0 ]; then

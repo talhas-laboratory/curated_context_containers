@@ -5,7 +5,7 @@ Purpose: deliver a fully wired frontend that speaks to the MCP HTTP API with bea
 ## Prereqs & references
 - API contracts: `single_source_of_truth/architecture/API_CONTRACTS.md`
 - Design tokens/components: `frontend/src` + `single_source_of_truth/design/*`
-- Auth: bearer token from env or `docker/mcp_token.txt`
+- Auth: bearer token from env
 - Base URL: `process.env.NEXT_PUBLIC_MCP_BASE_URL` (fallback to `http://localhost:7801`)
 
 ## 1) MCP HTTP client foundation

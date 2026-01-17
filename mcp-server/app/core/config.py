@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     rerank_top_k_out: int = Field(default=10)
     rerank_cache_ttl_seconds: int = Field(default=300)
     rerank_cache_size: int = Field(default=256)
-    mcp_token_path: str = Field(default="docker/mcp_token.txt")
+    mcp_token_path: str = Field(default="")
     mcp_token: str | None = Field(default=None, repr=False)
     manifests_path: str = Field(default="manifests")
     default_principal: str = Field(default="agent:local")

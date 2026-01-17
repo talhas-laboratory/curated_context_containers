@@ -9,7 +9,7 @@ This is the chronological, tickable plan an agent can follow to finish Phase 1 a
 
 ## 0) Preflight (env & alignment)
 - [x] Install/verify tooling: docker, docker-compose, psql client, Python 3.11, Node 18+, npm.
-- [x] Export secrets/env locally: `LLC_POSTGRES_DSN`, `LLC_QDRANT_URL`, `LLC_MINIO_*`, `NOMIC_API_KEY`, MCP token in `docker/mcp_token.txt` or `LLC_MCP_TOKEN`.
+- [x] Export secrets/env locally: `LLC_POSTGRES_DSN`, `LLC_QDRANT_URL`, `LLC_MINIO_*`, `NOMIC_API_KEY`, `LLC_MCP_TOKEN`.
 - [x] Re-read `single_source_of_truth/CONTEXT.md`, `PROGRESS.md`, `VISION.md`, `architecture/API_CONTRACTS.md`, `architecture/SYSTEM.md`.
 - [x] Sync manifests with code: confirm `manifests/` files align with DATA_MODEL and API contracts.
 

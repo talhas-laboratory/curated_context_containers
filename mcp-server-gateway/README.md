@@ -16,8 +16,8 @@ This gateway allows AI agents (Claude Desktop, Cursor, custom agents) to:
 ### Prerequisites
 
 - Python 3.11+
-- LLC backend running at `http://localhost:7801`
-- MCP token (from `../docker/mcp_token.txt`)
+- LLC backend running at `http://localhost:7801` (local) or `http://llc.<tailnet>/api` (Tailscale)
+- `LLC_MCP_TOKEN` set in your environment (same token configured on the server)
 
 ### Setup
 
@@ -60,11 +60,9 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ### Step 2: Get Your Token
 
-```bash
-cat ../docker/mcp_token.txt
-```
-
-Copy the token and replace `your-token-here` in the config above.
+Use the same token configured on the server (for home server deployments this
+is stored in `docker/.env.home` on the server or your secrets manager). Set it
+in Claude Desktop and restart the app.
 
 ### Step 3: Restart Claude Desktop
 
@@ -97,6 +95,17 @@ Add to your Cursor settings (`.cursor/config.json` or settings UI):
     }
   }
 }
+```
+
+### Remote (Tailscale) Example
+
+If the server is only reachable via Tailscale, point the gateway at the
+reverse proxy path:
+
+```bash
+export LLC_BASE_URL="http://llc.<tailnet>/api"
+export LLC_MCP_TOKEN="your-token-here"
+python -m llc_mcp_gateway.server
 ```
 
 ## Available Tools
@@ -197,12 +206,8 @@ make up
 
 ### "Authentication failed" errors
 
-Verify your token:
-```bash
-cat ../docker/mcp_token.txt
-```
-
-Update the token in Claude Desktop config and restart.
+Verify the token in your environment matches the server configuration, then
+update the Claude Desktop/Cursor config and restart.
 
 ### "Tool not found" errors
 
@@ -233,6 +238,19 @@ ruff check src/
 - **Python SDK**: Use `../agents-sdk` for programmatic agent development
 - **Examples**: See `../examples/agents/` for sample agent implementations
 - **Documentation**: Read `../docs/AGENT_QUICKSTART.md` for patterns and best practices
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -39,7 +39,7 @@ Now has the correct configuration:
         ],
         "env": {
           "LLC_BASE_URL": "http://localhost:7801",
-          "LLC_MCP_TOKEN": "dev-token-ef419ff5fd8889ce5c892c212494a492"
+          "LLC_MCP_TOKEN": "your-token-here"
         }
       }
     }
