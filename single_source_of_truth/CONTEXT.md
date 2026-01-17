@@ -1,7 +1,7 @@
 # Project Context — Live State Snapshot
 
-**Last Updated:** 2025-12-04T18:58:00Z  
-**Hash:** 33722ab79056aaa0a58a3b8f72015b3a26c68ed43ebedb3af12114adc8896d35  
+**Last Updated:** 2026-01-16T14:49:24Z  
+**Hash:** 4a17b86c5b95c3207ade429528a7000e475267f1d57016ba861320b4a0a90979  
 **Phase:** 2 — Multimodal + Rerank (Complete; Phase 3 planning next)
 
 ---
@@ -29,7 +29,7 @@
 ### Integration & Automation
 - **Status:** 🟢 Baseline gates wired  
 - **State:** `make smoke` + golden budgeted; integration test hits real Postgres/Qdrant/MinIO/Neo4j; PDF ingest→search integration test passing; CI workflow runs migrate → pytest (cov) → smoke → golden (Playwright required; skip via `CI_E2E=0`); runbooks published (setup, backup/restore, incident response). Golden runner supports image queries/container arrays + graded relevance via titles/URIs; graph contracts/integration + Playwright graph spec now green locally.  
-- **Next:** Phase 3 eval design (multi-vector/observability), add rerank-inclusive golden runs with Phase 2 assets as baseline.
+- **Next:** Home server deployment packaging (frontend container + production compose + reverse proxy), then Phase 3 eval design (multi-vector/observability).
 
 ---
 
@@ -94,6 +94,8 @@
 | 2025-11-09 | Three-agent system: Orchestrator, Silent Architect, IKB Designer | Separation of coordination, backend, frontend concerns | Orchestrator |
 | 2025-11-23 | Rerank execution per ADR-002 (budget-guarded, opt-in; fallback deterministic) | Preserve p95 <900 ms with optional quality lift | Silent Architect |
 | 2025-11-23 | Golden eval expansion (PDF + latency/no-hit cases) with budgets enforced | Broaden coverage before Phase 2 | Orchestrator |
+| 2026-01-16 | Home server deployment choices: Tailscale VPN-only, buildx+GHCR, agent-local MCP gateway | Private access with reproducible builds | Orchestrator |
+| 2026-01-16 | Home server routing and persistence: reverse proxy with `http://llc.<tailnet>` and volumes under `/srv/llc` | Single URL on tailnet + predictable backups | Orchestrator |
 
 ---
 
@@ -107,14 +109,14 @@
 
 ## Next Session Priorities
 
-1. **Orchestrator:** Seed Phase 3 kickoff plan and hash baseline; capture Phase 2 completion in DECISIONS/LESSONS if needed.
-2. **Silent Architect:** Define Phase 3 ADRs (multi-vector, observability), update DATA_MODEL/API_CONTRACTS with ADR links, outline refresh/export handler runbooks.
-3. **IKB Designer:** Map Phase 3 observability UI and diagnostics depth; plan Storybook/Playwright coverage for new surfaces.
+1. **Orchestrator:** Execute home server deployment plan (production compose + reverse proxy + secrets); update runbooks/docs after wiring.
+2. **Silent Architect:** Align MCP server env/CORS and compose topology for production; add optional gateway container if needed.
+3. **IKB Designer:** Containerize frontend and verify MCP base URL/token handling for production builds.
 
 ---
 
 ## Context Hash
 
 **Algorithm:** SHA-256 of CONTEXT.md + PROGRESS.md + VISION.md  
-**Current Hash:** 4667c404f0a402768715f292618c389635dff438884de38f020d53ddfcffcd37  
+**Current Hash:** 9ac54c91b3d10cad876e89b8b47d731c371e0b2b2702c3feb10572f53dccbd94  
 **Purpose:** Verify agents start session with synchronized state

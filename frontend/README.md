@@ -30,6 +30,20 @@ Next.js frontend for Local Latent Containers, providing a clean UI for browsing 
 
 4. Open [http://localhost:3000](http://localhost:3000)
 
+## Docker (Production)
+
+Build a production image (defaults `NEXT_PUBLIC_MCP_BASE_URL=/api` for reverse-proxy routing):
+
+```bash
+docker build -f frontend/Dockerfile -t llc-frontend --build-arg NEXT_PUBLIC_MCP_BASE_URL=/api frontend
+```
+
+Run the container:
+
+```bash
+docker run --rm -p 3000:3000 llc-frontend
+```
+
 ## Configuration
 
 ### Environment Variables

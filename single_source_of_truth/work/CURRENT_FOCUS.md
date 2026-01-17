@@ -1,6 +1,6 @@
 # Current Focus — Real-Time Task Status
 
-**Last Updated:** 2025-12-01T20:55:00Z  
+**Last Updated:** 2026-01-16T14:35:02Z  
 **Agent:** Orchestrator
 
 ---
@@ -8,48 +8,48 @@
 ## Active Work
 
 ### 🔵 Orchestrator
-**Status:** 🟢 Complete (Phase 2)  
-**Current Task:** Phase 2 close-out — build plan done, hashes refreshed; prep Phase 3 kickoff plan/hash seed  
-**Progress:** 100%  
+**Status:** 🟡 In Progress (Deployment packaging)  
+**Current Task:** Home server deployment plan execution (production compose + reverse proxy + docs)  
+**Progress:** 20%  
 **Blockers:** None  
-**Latest:** Phase 2 build plan completed; CONTEXT/PROGRESS/CURRENT_FOCUS updated; diary logged; admin fastpath and maintenance UI running for tests.  
-**Next Action:** Kick off Phase 3 planning (multi-vector/observability) and set new hash baseline.
+**Latest:** Drafted `single_source_of_truth/work/BUILDPLAN_HOME_SERVER_DEPLOYMENT.md` with deployment gaps and tasks.  
+**Next Action:** Translate plan into production compose, reverse proxy config, and deployment runbook.
 
 ---
 
 ### 🔵 Silent Architect
-**Status:** 🟢 Complete (Phase 2)  
-**Current Task:** Prepare Phase 3 scope (multi-vector/observability) and ADR stubs; link ADR-003/004 into DATA_MODEL/API_CONTRACTS  
-**Progress:** 100%  
+**Status:** 🟡 In Progress (Deployment hardening)  
+**Current Task:** Production compose topology (ports/secrets/CORS) and MCP server env alignment  
+**Progress:** 0%  
 **Blockers:** None  
-**Latest:** ADR-003/004 drafted; backend image/crossmodal/rerank/refresh/export complete; golden runner supports crossmodal; admin fastpath toggle added for UI testing.  
-**Next Action:** Draft Phase 3 ADRs and update DATA_MODEL/API_CONTRACTS with links; plan worker handlers/runbooks for refresh/export if needed.
+**Latest:** Deployment plan drafted; production compose wiring not started.  
+**Next Action:** Define prod env vars, lock down CORS, and review reverse proxy routing needs.
 
 ---
 
 ### 🔵 IKB Designer
-**Status:** 🟢 Complete (Phase 2)  
-**Current Task:** Prep Phase 3 UI goals (observability dashboards, diagnostics depth) and coverage plans  
-**Progress:** 100%  
+**Status:** 🟡 In Progress (Deployment packaging)  
+**Current Task:** Containerize frontend for production builds  
+**Progress:** 0%  
 **Blockers:** None  
-**Latest:** Multi-container selector, crossmodal UI, diagnostics rail, maintenance modals/job panel shipped with tests.  
-**Next Action:** Define Phase 3 observability UI/Storybook/Playwright scope; validate reduced-motion/a11y on new surfaces.
+**Latest:** Deployment plan drafted; frontend Dockerfile and build pipeline pending.  
+**Next Action:** Add Dockerfile and verify MCP base URL/token handling in prod builds.
 
 ---
 
 ## Work Queue (Prioritized)
 
-1. **Orchestrator:** Maintain Phase 2 kickoff state; recompute hashes after each slice; ensure build plan is ticked with comments.  
-2. **Silent Architect:** Wire ADR decisions into DATA_MODEL/API_CONTRACTS; prep golden runs with rerank.  
-3. **IKB Designer:** Implement crossmodal diagnostics rail polish + a11y updates for new modes; Storybook/RTL for selector.
+1. **Orchestrator:** Add production compose + reverse proxy configuration; write deployment runbook.  
+2. **Silent Architect:** Harden MCP server env/CORS + secrets strategy for prod.  
+3. **IKB Designer:** Add frontend Dockerfile and production build config.
 
 ---
 
 ## Context for Next Agent
 
-**Project Phase:** 2 — Multimodal + Rerank (In Progress)  
-**Overall Status:** 🟡 In Progress  
-**Foundation Complete:** Yes — Phase 1 complete; Phase 2 execution underway  
+**Project Phase:** 2 — Multimodal + Rerank (Complete); deployment packaging in progress  
+**Overall Status:** 🟡 In Progress (deployment)  
+**Foundation Complete:** Yes — Phase 1/2 complete; deployment work underway  
 
 **Key Documents to Read:**
 - `single_source_of_truth/INDEX.md` (navigation hub)

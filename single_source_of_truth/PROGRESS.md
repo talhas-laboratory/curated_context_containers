@@ -1,9 +1,9 @@
 # Progress Tracker — Milestone Status Board
 
-**Last Updated:** 2025-12-04T18:58:00Z  
+**Last Updated:** 2026-01-16T14:35:02Z  
 **Current Phase:** 2 — Multimodal + Rerank (Complete; Graph RAG slice delivered)  
 **Overall Status:** 🟢 Phase 2 Complete (prep for Phase 3)  
-**Recent Update (2025-12-04):** Graph RAG enablement shipped: Neo4j adapter + graph endpoints live, manifest fields wired, frontend graph tab with diagnostics, and Playwright graph E2E passing. Backend graph tokenization fixed for slug/phrase queries; compose rebuilt (migrations already applied). Backend unit/contract + graph integration + SDK tests green; vitest Graph suite and Playwright graph spec now passing against local stack.
+**Recent Update (2026-01-16):** Home server deployment build plan drafted (frontend containerization, production compose, reverse proxy/TLS, MCP access strategy).
 
 ---
 
@@ -131,6 +131,6 @@
 
 ## Next 3 Priorities
 
-1. **Orchestrator:** Close Phase 2 artifacts and prepare Phase 3 kickoff plan/hash seed.
-2. **Silent Architect:** Plan Phase 3 (multi-vector/observability) scope and ADR stubs; decide on cache/router approach.
-3. **IKB Designer:** Define Phase 3 UI goals (observability dashboards, diagnostics depth) and align tokens/patterns.
+1. **Orchestrator:** Execute home server deployment plan and publish deployment docs/runbooks.
+2. **Silent Architect:** Harden production compose topology (ports, secrets, CORS), optional gateway container.
+3. **IKB Designer:** Containerize frontend and validate MCP base URL/token wiring for production builds.
