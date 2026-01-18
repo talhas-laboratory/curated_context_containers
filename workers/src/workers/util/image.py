@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 import io
-import logging
+import structlog
 import mimetypes
 from pathlib import Path
 from typing import Optional, Tuple
@@ -16,7 +16,7 @@ try:
 except Exception:  # pragma: no cover - optional dependency guard
     Image = None
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = structlog.get_logger()
 
 
 def _fetch_bytes_from_uri(uri: str) -> bytes | None:
@@ -27,7 +27,7 @@ def _fetch_bytes_from_uri(uri: str) -> bytes | None:
             resp.raise_for_status()
             return resp.content
         except Exception as exc:  # pragma: no cover - network edge
-            LOGGER.warning("image_fetch_failed uri=%s error=%s", uri, exc)
+            LOGGER.warning("image_fetch_failed", uri=uri, error=str(exc))
             return None
     path = Path(parsed.path or uri)
     if not path.exists():
@@ -35,7 +35,7 @@ def _fetch_bytes_from_uri(uri: str) -> bytes | None:
     try:
         return path.read_bytes()
     except Exception as exc:  # pragma: no cover - filesystem edge
-        LOGGER.warning("image_read_failed path=%s error=%s", path, exc)
+        LOGGER.warning("image_read_failed", path=str(path), error=str(exc))
         return None
 
 
@@ -53,7 +53,7 @@ def load_image_bytes(source: dict) -> Tuple[bytes | None, str | None, str | None
             decoded = base64.b64decode(meta["image_base64"])
             return decoded, meta.get("mime") or source.get("mime"), meta.get("filename")
         except Exception as exc:  # pragma: no cover - malformed base64
-            LOGGER.warning("image_base64_decode_failed error=%s", exc)
+            LOGGER.warning("image_base64_decode_failed", error=str(exc))
 
     uri = source.get("uri")
     if uri:
@@ -87,7 +87,7 @@ def make_thumbnail(
         thumb_bytes = buf.getvalue()
         return thumb_bytes, {"width": img.width, "height": img.height, "format": "JPEG"}
     except Exception as exc:  # pragma: no cover - transformation edge cases
-        LOGGER.warning("image_thumbnail_failed error=%s", exc)
+        LOGGER.warning("image_thumbnail_failed", error=str(exc))
         return None, {}
 
 

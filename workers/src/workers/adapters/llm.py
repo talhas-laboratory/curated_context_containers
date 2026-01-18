@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import json
-import logging
+import structlog
 from typing import Any, Tuple
 
 import requests
 
 from workers.config import settings
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = structlog.get_logger()
 
 
 def _clean_relation_type(rel_type: str) -> str:

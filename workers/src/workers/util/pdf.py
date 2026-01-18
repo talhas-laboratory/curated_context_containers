@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 import io
-import logging
+import structlog
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
@@ -15,7 +15,7 @@ try:  # Optional dependency to keep worker runtime lean.
 except Exception:  # pragma: no cover - optional import guard
     PdfReader = None
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = structlog.get_logger()
 
 
 def _load_bytes_from_uri(uri: str) -> Optional[bytes]:
@@ -47,7 +47,7 @@ def extract_pdf_text(content: bytes | None) -> str:
     if not content:
         return ""
     if PdfReader is None:
-        LOGGER.warning("pypdf_missing", extra={"hint": "install pypdf>=4 to enable PDF text extraction"})
+        LOGGER.warning("pypdf_missing", hint="install pypdf>=4 to enable PDF text extraction")
         return ""
     try:
         reader = PdfReader(io.BytesIO(content))

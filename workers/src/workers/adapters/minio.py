@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import io
-import logging
+import structlog
 import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,7 +11,7 @@ from minio import Minio
 
 from workers.config import settings
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = structlog.get_logger()
 
 
 def _endpoint_from_url(url: str) -> tuple[str, bool]:
@@ -48,7 +48,7 @@ class MinioAdapter:
             if not self.client.bucket_exists(self.bucket):
                 self.client.make_bucket(self.bucket)
         except Exception as exc:  # pragma: no cover - requires MinIO running
-            LOGGER.warning("minio_bucket_init_failed error=%s", exc)
+            LOGGER.warning("minio_bucket_init_failed", error=str(exc))
 
     def store_raw(self, container_id: str, doc_id: str, source_uri: str | None, content: str) -> None:
         data = content.encode("utf-8")
@@ -62,7 +62,7 @@ class MinioAdapter:
                 content_type="text/plain",
             )
         except Exception as exc:  # pragma: no cover - requires MinIO running
-            LOGGER.warning("minio_store_failed object=%s error=%s", object_name, exc)
+            LOGGER.warning("minio_store_failed", object=object_name, error=str(exc))
 
     def store_image(
         self,
@@ -91,7 +91,7 @@ class MinioAdapter:
             )
             paths["original"] = original_key
         except Exception as exc:  # pragma: no cover - requires MinIO running
-            LOGGER.warning("minio_store_image_failed object=%s error=%s", original_key, exc)
+            LOGGER.warning("minio_store_image_failed", object=original_key, error=str(exc))
 
         if thumbnail_bytes:
             thumb_name = f"{Path(base_name).stem}_thumb.jpg"
@@ -106,7 +106,7 @@ class MinioAdapter:
                 )
                 paths["thumbnail"] = thumb_key
             except Exception as exc:  # pragma: no cover - requires MinIO running
-                LOGGER.warning("minio_store_thumb_failed object=%s error=%s", thumb_key, exc)
+                LOGGER.warning("minio_store_thumb_failed", object=thumb_key, error=str(exc))
 
         return paths
 
