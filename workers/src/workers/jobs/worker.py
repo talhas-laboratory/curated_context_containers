@@ -9,7 +9,6 @@ import psycopg
 from psycopg.rows import dict_row
 
 from workers.logging import configure_logging
-from workers.pipelines import run_pipeline
 from workers.config import settings
 from workers.metrics import start_metrics_server
 
@@ -142,6 +141,7 @@ def reap_stale_jobs(conn: psycopg.Connection) -> List[Tuple[str, str]]:
 
 
 def process_job(conn: psycopg.Connection, job: dict) -> None:  # pragma: no cover
+    from workers.pipelines import run_pipeline
     heartbeat: Callable[[], None] = lambda: touch_heartbeat(conn, job["id"])
     run_pipeline(conn, job["kind"], job, heartbeat=heartbeat)
 
