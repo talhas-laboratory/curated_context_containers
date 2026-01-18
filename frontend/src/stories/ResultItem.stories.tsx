@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ResultItem } from '../components/ResultItem';
+import type { SearchResult } from '../lib/types';
 
 const meta: Meta<typeof ResultItem> = {
   title: 'Components/ResultItem',
@@ -13,7 +14,7 @@ const meta: Meta<typeof ResultItem> = {
 export default meta;
 type Story = StoryObj<typeof ResultItem>;
 
-const sampleResult = {
+const sampleResult: SearchResult = {
   chunk_id: 'abc123',
   doc_id: 'doc456',
   container_id: 'expressionist-art',

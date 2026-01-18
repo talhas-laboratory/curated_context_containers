@@ -46,7 +46,7 @@ export function useSearch() {
  */
 export function useSearchQuery(
   params: UseSearchParams | null,
-  options?: Omit<UseQueryOptions<SearchResponse>, 'queryKey' | 'queryFn'>
+  options?: Omit<UseQueryOptions<SearchResponse, MCPError>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery<SearchResponse, MCPError>({
     queryKey: ['search', params],

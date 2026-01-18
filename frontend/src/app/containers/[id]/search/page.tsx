@@ -601,7 +601,7 @@ export default function ContainerSearchPage() {
                     </div>
                   )}
                   {activeSearchError && (
-                    <p className="text-red-600">{(activeSearchError as Error).message || 'Search error'}</p>
+                    <p className="text-red-600">{activeSearchError.message || 'Search error'}</p>
                   )}
                 </motion.div>
               )}

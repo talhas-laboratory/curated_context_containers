@@ -55,7 +55,7 @@ resetJobFixtures();
 
 export const handlers = [
   http.post('*/v1/containers/create', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { name?: string };
     if (!body.name) {
       return new HttpResponse(JSON.stringify({ error: { code: 'VALIDATION_ERROR', message: 'name required' } }), {
         status: 400,
@@ -72,7 +72,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/containers/list', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { state?: string };
     if (body.state === 'empty') {
       return HttpResponse.json({ containers: [], total: 0 });
     }
@@ -85,7 +85,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/containers/describe', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { container?: string };
     if (body.container === 'missing') {
       return new HttpResponse(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'not found' } }), {
         status: 404,
@@ -95,7 +95,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/documents/list', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { container?: string };
     if (body.container === 'missing') {
       return new HttpResponse(JSON.stringify({ error: { code: 'CONTAINER_NOT_FOUND', message: 'missing' } }), {
         status: 404,
@@ -110,7 +110,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/documents/delete', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { document_id?: string };
     const index = documents.findIndex((doc) => doc.id === body.document_id);
     if (index === -1) {
       return new HttpResponse(JSON.stringify({ error: { code: 'DOCUMENT_NOT_FOUND', message: 'missing' } }), {
@@ -126,7 +126,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/search', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { query?: string; mode?: string; graph?: unknown };
     const query = (body.query as string) || 'image-query';
     const isGraphRequest = body.mode === 'graph' || body.mode === 'hybrid_graph' || !!body.graph;
 
@@ -154,7 +154,7 @@ export const handlers = [
       });
     }
 
-    const response = {
+    const response: Record<string, unknown> = {
       version: 'v1',
       request_id: 'req-456',
       query,
@@ -200,15 +200,21 @@ export const handlers = [
           { chunk_id: 'chunk-2', doc_id: 'doc-2', title: 'Team note', text: 'Relation', uri: 'doc://2' },
         ],
       };
-      response.diagnostics = { ...response.diagnostics, graph_hits: 2 };
-      response.timings_ms = { ...response.timings_ms, graph_ms: 12 };
+      response.diagnostics = {
+        ...(response.diagnostics as Record<string, unknown>),
+        graph_hits: 2,
+      };
+      response.timings_ms = {
+        ...(response.timings_ms as Record<string, unknown>),
+        graph_ms: 12,
+      };
     }
 
     return HttpResponse.json(response);
   }),
 
   http.post('*/v1/containers/graph_search', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { mode?: string; query?: string };
     const mode = body.mode || 'nl';
     if (body.query === 'bad-cypher' && mode === 'cypher') {
       return new HttpResponse(JSON.stringify({ error: { code: 'GRAPH_QUERY_INVALID', message: 'bad query' } }), {
@@ -259,7 +265,7 @@ export const handlers = [
   }),
 
   http.post('*/v1/jobs/status', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as { job_ids?: string[] };
     const jobIds: string[] = body.job_ids || [];
 
     return HttpResponse.json({

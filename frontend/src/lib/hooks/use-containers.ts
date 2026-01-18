@@ -55,7 +55,7 @@ export function useCreateContainer(
     },
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ['containers'] });
-      onSuccess?.(data, variables, context);
+      onSuccess?.(data, variables, context, undefined);
     },
     ...restOptions,
   });

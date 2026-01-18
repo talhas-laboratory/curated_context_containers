@@ -61,6 +61,11 @@ export function DocumentModal({ result, isOpen, onClose }: DocumentModalProps) {
   };
 
   const minIOUri = formatMinIOUri(result.uri);
+  const ingestedAt = result.provenance?.ingested_at;
+  const ingestedAtLabel =
+    typeof ingestedAt === 'string' || typeof ingestedAt === 'number'
+      ? new Date(ingestedAt).toLocaleString()
+      : null;
 
   return (
     <div
@@ -127,11 +132,11 @@ export function DocumentModal({ result, isOpen, onClose }: DocumentModalProps) {
                   <dd className="text-ink-1">{String(result.provenance.source)}</dd>
                 </div>
               )}
-              {result.provenance?.ingested_at && (
+              {ingestedAtLabel && (
                 <div>
                   <dt className="text-ink-2">Ingested</dt>
                   <dd className="text-ink-1">
-                    {new Date(result.provenance.ingested_at).toLocaleString()}
+                    {ingestedAtLabel}
                   </dd>
                 </div>
               )}
@@ -144,7 +149,7 @@ export function DocumentModal({ result, isOpen, onClose }: DocumentModalProps) {
               {result.provenance?.page && (
                 <div>
                   <dt className="text-chrome-400">Page</dt>
-                  <dd className="text-chrome-900">{result.provenance.page}</dd>
+                  <dd className="text-chrome-900">{String(result.provenance.page)}</dd>
                 </div>
               )}
             </dl>

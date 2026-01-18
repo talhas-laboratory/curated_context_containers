@@ -25,7 +25,7 @@ export const queryClient = new QueryClient({
 
 // Error logging hook (can be extended with toast notifications)
 queryClient.getQueryCache().subscribe((event) => {
-  if (event?.type === 'error') {
+  if (event?.type === 'updated' && event.query.state.status === 'error') {
     const error = event.query.state.error;
     if (error) {
       console.error('[React Query Error]', {
@@ -35,4 +35,3 @@ queryClient.getQueryCache().subscribe((event) => {
     }
   }
 });
-
