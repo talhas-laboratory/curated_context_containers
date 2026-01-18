@@ -19,7 +19,41 @@ except Exception:  # pragma: no cover - optional dependency guard
 LOGGER = structlog.get_logger()
 
 
+def _extract_storage_path(uri: str) -> tuple[str, str] | None:
+    """Extract bucket and object path from storage URL."""
+    parsed = urlparse(uri)
+    
+    if '/storage/' in parsed.path:
+        path_parts = parsed.path.split('/storage/', 1)
+        if len(path_parts) == 2:
+            object_full_path = path_parts[1]
+            parts = object_full_path.split('/', 1)
+            if len(parts) == 2:
+                return (parts[0], parts[1])
+            return ("sandbox", object_full_path)
+    
+    return None
+
+
 def _fetch_bytes_from_uri(uri: str) -> bytes | None:
+    # Try MinIO direct fetch for storage URLs
+    storage_path = _extract_storage_path(uri)
+    if storage_path:
+        bucket, object_path = storage_path
+        try:
+            from workers.adapters.minio import minio_adapter
+            
+            response = minio_adapter.client.get_object(bucket, object_path)
+            content = response.read()
+            response.close()
+            response.release_conn()
+            
+            LOGGER.debug("minio_direct_fetch_success", bucket=bucket, object_path=object_path, size=len(content))
+            return content
+        except Exception as exc:
+            LOGGER.warning("minio_direct_fetch_failed", bucket=bucket, object_path=object_path, error=str(exc))
+            # Fall through to HTTP fetch
+    
     parsed = urlparse(uri)
     if parsed.scheme in {"http", "https"}:
         try:

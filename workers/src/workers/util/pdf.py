@@ -6,7 +6,7 @@ import io
 import structlog
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 import httpx
 
@@ -15,11 +15,59 @@ try:  # Optional dependency to keep worker runtime lean.
 except Exception:  # pragma: no cover - optional import guard
     PdfReader = None
 
+from workers.config import settings
+
 LOGGER = structlog.get_logger()
+
+
+def _extract_storage_path(uri: str) -> tuple[str, str] | None:
+    """Extract bucket and object path from storage URL.
+    
+    Returns (bucket, object_path) or None if not a storage URL.
+    Example:
+      http://talhas-laboratory.tailefe062.ts.net/storage/sandbox/file.pdf?X-Amz-...
+      -> ("sandbox", "file.pdf")
+    """
+    parsed = urlparse(uri)
+    
+    if '/storage/' in parsed.path:
+        path_parts = parsed.path.split('/storage/', 1)
+        if len(path_parts) == 2:
+            object_full_path = path_parts[1]  # e.g., "sandbox/file.pdf"
+            # Split into bucket (first part) and object path (rest)
+            parts = object_full_path.split('/', 1)
+            if len(parts) == 2:
+                bucket, object_path = parts
+                return (bucket, object_path)
+            # If no slash, treat entire path as bucket+object
+            return (object_full_path.split('/')[0] if '/' in object_full_path else "sandbox", 
+                    object_full_path.split('/', 1)[-1] if '/' in object_full_path else object_full_path)
+    
+    return None
 
 
 def _load_bytes_from_uri(uri: str) -> Optional[bytes]:
     """Load bytes from file:// or http(s) URI."""
+    # Check if this is a storage URL that we can fetch from MinIO directly
+    storage_path = _extract_storage_path(uri)
+    if storage_path:
+        bucket, object_path = storage_path
+        try:
+            # Import MinIO adapter lazily to avoid circular imports
+            from workers.adapters.minio import minio_adapter
+            
+            # Get object from MinIO
+            response = minio_adapter.client.get_object(bucket, object_path)
+            content = response.read()
+            response.close()
+            response.release_conn()
+            
+            LOGGER.debug("minio_direct_fetch_success", bucket=bucket, object_path=object_path, size=len(content))
+            return content
+        except Exception as exc:
+            LOGGER.warning("minio_direct_fetch_failed", bucket=bucket, object_path=object_path, error=str(exc))
+            # Fall through to try regular HTTP fetch
+    
     parsed = urlparse(uri)
     if parsed.scheme in {"file", ""}:
         path = Path(parsed.path or uri)
