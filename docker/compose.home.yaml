@@ -20,6 +20,7 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_MCP_BASE_URL: /api
+      NEXT_PUBLIC_MCP_TOKEN: ${LLC_MCP_TOKEN}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_INTERNAL_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: localminio
