@@ -17,11 +17,11 @@ const uploadClient = new S3Client({
   forcePathStyle: true, // Required for MinIO
 });
 
-// Client for generating presigned URLs for the Worker (running in Docker)
-// The worker needs to access MinIO via the docker network alias 'minio'
+// Client for generating presigned URLs accessible from the browser
+// These URLs must be accessible by the user's browser, so we use the public endpoint
 const signingClient = new S3Client({
   region: 'us-east-1',
-  endpoint: process.env.MINIO_INTERNAL_ENDPOINT || 'http://minio:9000',
+  endpoint: process.env.MINIO_PUBLIC_ENDPOINT || 'http://talhas-laboratory.tailefe062.ts.net/storage',
   credentials: {
     accessKeyId: process.env.MINIO_ACCESS_KEY || 'localminio',
     secretAccessKey: process.env.MINIO_SECRET_KEY || 'localminio123',

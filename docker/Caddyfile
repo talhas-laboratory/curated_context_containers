@@ -1,4 +1,4 @@
-http://llc.<tailnet> {
+http://talhas-laboratory.tailefe062.ts.net {
   encode zstd gzip
 
   handle /api/sandbox/* {
@@ -7,6 +7,10 @@ http://llc.<tailnet> {
 
   handle_path /api/* {
     reverse_proxy mcp:7801
+  }
+
+  handle /storage/* {
+    reverse_proxy minio:9000
   }
 
   handle {
