@@ -34,9 +34,6 @@ def upgrade() -> None:
         sa.Column('metadata', postgresql.JSON(), nullable=True),
     )
 
-    # Create index on agent_id
-    op.create_index('ix_agent_sessions_agent_id', 'agent_sessions', ['agent_id'])
-
     # Create container_links table for multi-agent collaboration
     op.create_table(
         'container_links',
@@ -81,7 +78,6 @@ def downgrade() -> None:
     op.drop_column('containers', 'auto_refresh')
     op.drop_column('containers', 'mission_context')
     op.drop_column('containers', 'created_by_agent')
-
 
 
 
