@@ -69,6 +69,7 @@ class AddSource(BaseModel):
     uri: str
     title: Optional[str] = None
     mime: Optional[str] = None
+    modality: Optional[str] = None
     meta: dict = Field(default_factory=dict)
 
 
