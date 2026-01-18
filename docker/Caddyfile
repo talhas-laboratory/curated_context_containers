@@ -1,6 +1,10 @@
 http://llc.<tailnet> {
   encode zstd gzip
 
+  handle /api/sandbox/* {
+    reverse_proxy frontend:3000
+  }
+
   handle_path /api/* {
     reverse_proxy mcp:7801
   }

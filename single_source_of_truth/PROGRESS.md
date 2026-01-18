@@ -1,9 +1,9 @@
 # Progress Tracker — Milestone Status Board
 
-**Last Updated:** 2026-01-16T14:35:02Z  
+**Last Updated:** 2026-01-18T15:09:24Z  
 **Current Phase:** 2 — Multimodal + Rerank (Complete; Graph RAG slice delivered)  
 **Overall Status:** 🟢 Phase 2 Complete (prep for Phase 3)  
-**Recent Update (2026-01-16):** Home server deployment build plan drafted (frontend containerization, production compose, reverse proxy/TLS, MCP access strategy).
+**Recent Update (2026-01-18):** Added chat-sandbox drag-and-drop PDF upload, plus proxy routing and UUID fallback fixes.
 
 ---
 

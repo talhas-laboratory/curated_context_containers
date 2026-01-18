@@ -10,6 +10,7 @@ import { UploadStatusBar } from '../../components/UploadStatusBar';
 import { useAddToContainer } from '../../lib/hooks/use-add-to-container';
 import { useListContainers } from '../../lib/hooks/use-containers';
 import { useSearch } from '../../lib/hooks/use-search';
+import { createId } from '../../lib/ids';
 import type { JobSummary, SearchResult } from '../../lib/types';
 
 interface Message {
@@ -28,8 +29,10 @@ export default function ChatSandboxPage() {
   const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
   const [completedJobIds, setCompletedJobIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dragDepth = useRef(0);
 
   const { data: containerData } = useListContainers('active');
   const searchMutation = useSearch();
@@ -52,7 +55,7 @@ export default function ChatSandboxPage() {
     if (!input.trim() || !activeContainerId) return;
 
     const userMsg: Message = {
-      id: crypto.randomUUID(),
+      id: createId(),
       role: 'user',
       content: input,
       timestamp: Date.now(),
@@ -72,7 +75,7 @@ export default function ChatSandboxPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           role: 'system',
           results: response.results,
           timestamp: Date.now(),
@@ -83,7 +86,7 @@ export default function ChatSandboxPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           role: 'system',
           content: 'Search failed. Check console logs.',
           timestamp: Date.now(),
@@ -92,11 +95,12 @@ export default function ChatSandboxPage() {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.[0] || !activeContainerId) return;
-    const file = event.target.files[0];
+  const isPdfFile = (file: File) => {
+    return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  };
+
+  const uploadFile = async (file: File, containerId: string) => {
     console.log('Uploading file...', file.name);
-    setIsUploading(true);
 
     try {
       const formData = new FormData();
@@ -116,7 +120,7 @@ export default function ChatSandboxPage() {
       console.log('Upload complete, URI:', uri);
 
       const response = await addToContainerMutation.mutateAsync({
-        containerId: activeContainerId,
+        containerId,
         sources: [
           {
             uri,
@@ -139,7 +143,7 @@ export default function ChatSandboxPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           role: 'system',
           content: `Ingestion queued for "${file.name}". Processing...`,
           timestamp: Date.now(),
@@ -150,17 +154,101 @@ export default function ChatSandboxPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           role: 'system',
           content: `Upload failed: ${(error as Error).message}. See console logs.`,
           timestamp: Date.now(),
         },
       ]);
+    }
+  };
+
+  const handleFiles = async (files: File[]) => {
+    if (!activeContainerId) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: createId(),
+          role: 'system',
+          content: 'Select a container before uploading documents.',
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    }
+
+    const containerId = activeContainerId;
+    const pdfFiles = files.filter(isPdfFile);
+    const rejectedFiles = files.filter((file) => !isPdfFile(file));
+
+    if (rejectedFiles.length) {
+      const names = rejectedFiles.map((file) => `"${file.name}"`).join(', ');
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: createId(),
+          role: 'system',
+          content: `Skipped non-PDF file(s): ${names}.`,
+          timestamp: Date.now(),
+        },
+      ]);
+    }
+
+    if (!pdfFiles.length) return;
+
+    setIsUploading(true);
+    try {
+      for (const file of pdfFiles) {
+        await uploadFile(file, containerId);
+      }
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    if (!files.length) return;
+    await handleFiles(files);
+  };
+
+  const isFileDrag = (event: React.DragEvent) => {
+    return Array.from(event.dataTransfer.types).includes('Files');
+  };
+
+  const handleDragEnter = (event: React.DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current += 1;
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = activeContainerId ? 'copy' : 'none';
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    dragDepth.current = 0;
+    setIsDragActive(false);
+    const files = Array.from(event.dataTransfer.files || []);
+    if (files.length) {
+      void handleFiles(files);
     }
   };
 
@@ -228,7 +316,23 @@ export default function ChatSandboxPage() {
       headline="Chat Sandbox"
       description="Upload PDFs into a container, then ask calm, deterministic questions."
     >
-      <div className="flex flex-col min-h-[600px] relative">
+      <div
+        className="flex flex-col min-h-[600px] relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {isDragActive && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center rounded-3xl bg-white/60 backdrop-blur-sm border border-white/70 pointer-events-none">
+            <div className="text-center">
+              <p className="text-sm font-medium uppercase tracking-widest text-ink-2/70">
+                {activeContainerId ? 'Drop PDFs to upload' : 'Select a container to upload'}
+              </p>
+              <p className="text-xs text-ink-2/60 mt-2">PDF only for now.</p>
+            </div>
+          </div>
+        )}
         {/* Context Indicator */}
         <motion.div 
           initial={{ opacity: 0 }} 
@@ -393,7 +497,7 @@ export default function ChatSandboxPage() {
           setMessages((prev) => [
             ...prev,
             {
-              id: crypto.randomUUID(),
+              id: createId(),
               role: 'system',
               content: 'Document is ready to search!',
               timestamp: Date.now(),

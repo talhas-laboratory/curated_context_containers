@@ -1,6 +1,6 @@
 # Current Focus — Real-Time Task Status
 
-**Last Updated:** 2026-01-16T14:35:02Z  
+**Last Updated:** 2026-01-18T15:09:24Z  
 **Agent:** Orchestrator
 
 ---
@@ -10,10 +10,10 @@
 ### 🔵 Orchestrator
 **Status:** 🟡 In Progress (Deployment packaging)  
 **Current Task:** Home server deployment plan execution (production compose + reverse proxy + docs)  
-**Progress:** 20%  
+**Progress:** 35%  
 **Blockers:** None  
-**Latest:** Drafted `single_source_of_truth/work/BUILDPLAN_HOME_SERVER_DEPLOYMENT.md` with deployment gaps and tasks.  
-**Next Action:** Translate plan into production compose, reverse proxy config, and deployment runbook.
+**Latest:** Added drag-and-drop PDF uploads in the chat sandbox, plus proxy routing/UUID fallback fixes.  
+**Next Action:** Verify upload flow end-to-end behind the home server proxy (drag/drop + button upload) and document the routing split.
 
 ---
 

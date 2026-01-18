@@ -1,7 +1,7 @@
 # Project Context — Live State Snapshot
 
-**Last Updated:** 2026-01-16T14:49:24Z  
-**Hash:** 4a17b86c5b95c3207ade429528a7000e475267f1d57016ba861320b4a0a90979  
+**Last Updated:** 2026-01-18T15:09:24Z  
+**Hash:** 9fdfd177803ac49808399b95f2065bfa66b8e41f9413715baf43df1e24b6b61c  
 **Phase:** 2 — Multimodal + Rerank (Complete; Phase 3 planning next)
 
 ---
@@ -19,6 +19,7 @@
 ### Frontend (IKB Designer)
 - **Status:** 🟢 Phase 2 complete  
 - **State:** Next.js App Router with MCP HTTP client + React Query hooks; gallery/search workspace; document modal; diagnostics rail; keyboard/reduced-motion. Multi-container selector, crossmodal query input/preview, graph/hybrid graph modes with tabular context + diagnostics (Graph Playwright E2E passing), maintenance (refresh/export) UI with job status + focus traps, MSW/RTL coverage; Playwright search flows hardened.  
+- **Recent:** Added drag-and-drop PDF upload in the chat sandbox (with container gating + overlay), UUID fallback for non-HTTPS contexts, and routed `/api/sandbox/*` to the frontend in the home server proxy for chat-sandbox uploads.  
 - **Next:** Plan Phase 3 UI (observability dashboards, deeper diagnostics), add Playwright coverage for maintenance flows, Storybook notes for Phase 3 components.
 
 ### Backend (Silent Architect)
@@ -118,5 +119,5 @@
 ## Context Hash
 
 **Algorithm:** SHA-256 of CONTEXT.md + PROGRESS.md + VISION.md  
-**Current Hash:** 9ac54c91b3d10cad876e89b8b47d731c371e0b2b2702c3feb10572f53dccbd94  
+**Current Hash:** cb524e982fb9f075f2c83be38175ae899518b0571979af10d731f989c92d9b38  
 **Purpose:** Verify agents start session with synchronized state
