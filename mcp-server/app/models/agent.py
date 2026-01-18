@@ -12,7 +12,7 @@ class CreateContainerRequest(BaseModel):
     name: str = Field(description="Unique container name (slug)")
     theme: str = Field(description="Container theme/topic")
     description: Optional[str] = None
-    modalities: List[str] = Field(default=["text"], description="Allowed modalities")
+    modalities: List[str] = Field(default=["text", "pdf", "image"], description="Allowed modalities")
     embedder: str = Field(default="google-gemma3-text", description="Embedder model")
     embedder_version: str = Field(default="1.0.0")
     dims: int = Field(default=768, description="Embedding dimensions")
