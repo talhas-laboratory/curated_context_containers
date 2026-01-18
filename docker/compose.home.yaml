@@ -20,6 +20,10 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_MCP_BASE_URL: /api
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_INTERNAL_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: localminio
+      MINIO_SECRET_KEY: localminio123
 
   mcp:
     image: ${LLC_MCP_IMAGE:-ghcr.io/OWNER/REPO-mcp:latest}
@@ -49,7 +53,7 @@ services:
       LLC_GRAPH_NL2CYPHER_MODEL: ${LLC_GRAPH_NL2CYPHER_MODEL:-anthropic/claude-3-haiku}
       LLC_GRAPH_NL2CYPHER_TIMEOUT_MS: ${LLC_GRAPH_NL2CYPHER_TIMEOUT_MS:-8000}
       LLC_ADMIN_FASTPATH: "false"
-      MCP_CORS_ORIGINS: ${MCP_CORS_ORIGINS:-http://llc.<tailnet>}
+      MCP_CORS_ORIGINS: ${MCP_CORS_ORIGINS:-http://talhas-laboratory.tailefe062.ts.net}
     volumes:
       - /srv/llc/manifests:/app/manifests:ro
     depends_on:
@@ -62,11 +66,7 @@ services:
       neo4j:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7801/health')\"",
-        ]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7801/health')\"" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,7 +117,7 @@ services:
     volumes:
       - /srv/llc/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U local -d registry"]
+      test: [ "CMD-SHELL", "pg_isready -U local -d registry" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -151,11 +151,7 @@ services:
       - /srv/llc/neo4j/data:/data
       - /srv/llc/neo4j/logs:/logs
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "cypher-shell -u neo4j -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1",
-        ]
+      test: [ "CMD-SHELL", "cypher-shell -u neo4j -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10

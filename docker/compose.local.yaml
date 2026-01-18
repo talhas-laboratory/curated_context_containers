@@ -12,7 +12,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U local"]
+      test: [ "CMD-SHELL", "pg_isready -U local" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,9 +60,9 @@ services:
       LLC_GRAPH_QUERY_TIMEOUT_MS: ${LLC_GRAPH_QUERY_TIMEOUT_MS:-1200}
       LLC_GRAPH_ENABLE_RAW_CYPHER: ${LLC_GRAPH_ENABLE_RAW_CYPHER:-true}
       LLC_GRAPH_NL2CYPHER_ENABLED: "true"
-      LLC_GRAPH_NL2CYPHER_URL: "https://openrouter.ai/api/v1/chat/completions"
-      LLC_GRAPH_NL2CYPHER_API_KEY: "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"
-      LLC_GRAPH_NL2CYPHER_MODEL: "anthropic/claude-3-haiku"
+      LLC_GRAPH_NL2CYPHER_URL: ${LLC_GRAPH_NL2CYPHER_URL:-https://openrouter.ai/api/v1/chat/completions}
+      LLC_GRAPH_NL2CYPHER_API_KEY: ${LLC_OPENROUTER_API_KEY:-}
+      LLC_GRAPH_NL2CYPHER_MODEL: ${LLC_GRAPH_NL2CYPHER_MODEL:-anthropic/claude-3-haiku}
       LLC_GRAPH_NL2CYPHER_TIMEOUT_MS: 8000
     ports:
       - "7801:7801"
@@ -117,7 +117,7 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u ${LLC_NEO4J_USER:-neo4j} -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1"]
+      test: [ "CMD-SHELL", "cypher-shell -u ${LLC_NEO4J_USER:-neo4j} -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10

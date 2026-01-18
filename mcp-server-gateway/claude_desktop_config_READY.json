@@ -8,12 +8,19 @@
       ],
       "env": {
         "LLC_BASE_URL": "http://localhost:7801",
-        "LLC_MCP_TOKEN": "your-token-here"
+        "LLC_MCP_TOKEN": "b14b66033a9d16fd82e059cfc43d2e2df9e3a620c764416235c155c6b97454d1"
+      }
+    },
+    "llc-home-server": {
+      "command": "python",
+      "args": [
+        "-m",
+        "llc_mcp_gateway.server"
+      ],
+      "env": {
+        "LLC_BASE_URL": "http://talhas-laboratory.tailefe062.ts.net/api",
+        "LLC_MCP_TOKEN": "b14b66033a9d16fd82e059cfc43d2e2df9e3a620c764416235c155c6b97454d1"
       }
     }
   }
 }
-
-
-
-
