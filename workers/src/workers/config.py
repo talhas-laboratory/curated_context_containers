@@ -28,7 +28,7 @@ class Settings(BaseSettings):
         description="Seconds to back off before reprocessing a failed job attempt.",
     )
     nomic_api_key: str = Field(default="", repr=False)
-    nomic_api_url: str = Field(default="https://api-atlas.nomic.ai/v1/embedding")
+    nomic_api_url: str = Field(default="https://api-atlas.nomic.ai/v1/embedding/text")
     minio_endpoint: str = Field(default="http://minio:9000")
     minio_access_key: str = Field(default="localminio")
     minio_secret_key: str = Field(default="localminio123", repr=False)
