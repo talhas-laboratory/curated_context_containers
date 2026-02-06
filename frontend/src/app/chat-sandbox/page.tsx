@@ -106,7 +106,8 @@ export default function ChatSandboxPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const uploadRes = await fetch('/api/sandbox/upload', {
+      // Avoid /api/* because many deployments reverse-proxy /api/* to the MCP backend.
+      const uploadRes = await fetch('/sandbox/upload', {
         method: 'POST',
         body: formData,
       });
