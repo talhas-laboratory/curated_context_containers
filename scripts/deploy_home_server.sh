@@ -91,7 +91,7 @@ else
 fi
 
 echo "Starting compose stack..."
-docker compose "${COMPOSE_ARGS[@]}" --env-file "$ENV_FILE" pull
-docker compose "${COMPOSE_ARGS[@]}" --env-file "$ENV_FILE" up -d
+pull_policy="${PULL_POLICY:-missing}"
+docker compose "${COMPOSE_ARGS[@]}" --env-file "$ENV_FILE" up -d --pull "$pull_policy"
 
 echo "Done. Verify with: curl http://llc.<tailnet>/api/health"
