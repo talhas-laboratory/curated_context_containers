@@ -34,7 +34,7 @@ if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       # Supports both:
       # - https://github.com/OWNER/REPO.git
       # - git@github.com:OWNER/REPO.git
-      if [[ "$origin_url" =~ github\\.com[/:]+([^/]+)/([^/.]+)(\\.git)?$ ]]; then
+      if [[ "$origin_url" =~ github\.com[/:]+([^/]+)/([^/.]+)(\.git)?$ ]]; then
         owner_repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
       fi
     fi
