@@ -75,7 +75,6 @@ export function AdminActionModal({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.08em] text-ink-2">Maintenance</p>
             <h2 id="admin-modal-title" className="text-xl font-serif text-ink-1">
               {title}
             </h2>

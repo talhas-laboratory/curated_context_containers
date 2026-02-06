@@ -39,6 +39,7 @@ from llc_agents.models import (
     SearchResult,
     Job,
     SearchMode,
+    ContainerLifecycleResponse,
 )
 
 __version__ = "0.1.0"
@@ -50,8 +51,8 @@ __all__ = [
     "SearchResult",
     "Job",
     "SearchMode",
+    "ContainerLifecycleResponse",
 ]
-
 
 
 

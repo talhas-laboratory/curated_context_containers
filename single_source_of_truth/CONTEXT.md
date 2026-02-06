@@ -1,7 +1,7 @@
 # Project Context — Live State Snapshot
 
-**Last Updated:** 2026-01-18T15:09:24Z  
-**Hash:** 9fdfd177803ac49808399b95f2065bfa66b8e41f9413715baf43df1e24b6b61c  
+**Last Updated:** 2026-02-01T12:45:00Z  
+**Hash:** 6c3f9e5c4fcdc4ac7ebcb5ac9abb412ca145df7471d716629384b6416aee7065  
 **Phase:** 2 — Multimodal + Rerank (Complete; Phase 3 planning next)
 
 ---
@@ -19,17 +19,18 @@
 ### Frontend (IKB Designer)
 - **Status:** 🟢 Phase 2 complete  
 - **State:** Next.js App Router with MCP HTTP client + React Query hooks; gallery/search workspace; document modal; diagnostics rail; keyboard/reduced-motion. Multi-container selector, crossmodal query input/preview, graph/hybrid graph modes with tabular context + diagnostics (Graph Playwright E2E passing), maintenance (refresh/export) UI with job status + focus traps, MSW/RTL coverage; Playwright search flows hardened.  
-- **Recent:** Added drag-and-drop PDF upload in the chat sandbox (with container gating + overlay), UUID fallback for non-HTTPS contexts, and routed `/api/sandbox/*` to the frontend in the home server proxy for chat-sandbox uploads.  
+- **Recent:** Added container hierarchy UI (parent selector + nested subcontainer cards), kept archive/delete flow, and surfaced container IDs on cards.  
 - **Next:** Plan Phase 3 UI (observability dashboards, deeper diagnostics), add Playwright coverage for maintenance flows, Storybook notes for Phase 3 components.
 
 ### Backend (Silent Architect)
 - **Status:** 🟢 Phase 2 complete  
 - **State:** Auth enforced; manifests drive policy/latency; hybrid/crossmodal/graph search with diagnostics/issue codes; rerank provider + cache; integration + contract tests green; golden runner supports text/image and rerank budgets. Image ingest (MinIO originals+thumbs, modality collections), crossmodal search, rerank provider/cache, refresh/export endpoints, admin fastpath for UI testing, graph endpoints (upsert/search/schema) backed by Neo4j + Qdrant node embeddings.  
+- **Recent:** Added container hierarchy support (parent_id, policy inheritance, descendant-aware search) plus cascading delete/archiving across subcontainers.  
 - **Next:** Plan Phase 3 (multi-vector/observability), link ADR-003/ADR-004 into DATA_MODEL/API_CONTRACTS, add refresh/export worker handlers + runbooks, define Phase 3 ADRs.
 
 ### Integration & Automation
 - **Status:** 🟢 Baseline gates wired  
-- **State:** `make smoke` + golden budgeted; integration test hits real Postgres/Qdrant/MinIO/Neo4j; PDF ingest→search integration test passing; CI workflow runs migrate → pytest (cov) → smoke → golden (Playwright required; skip via `CI_E2E=0`); runbooks published (setup, backup/restore, incident response). Golden runner supports image queries/container arrays + graded relevance via titles/URIs; graph contracts/integration + Playwright graph spec now green locally.  
+- **State:** `make smoke` + golden budgeted; integration test hits real Postgres/Qdrant/MinIO/Neo4j; PDF ingest→search integration test passing; CI workflow runs migrate → pytest (cov) → smoke → golden (Playwright required; skip via `CI_E2E=0`); runbooks published (setup, backup/restore, incident response). Golden runner supports image queries/container arrays + graded relevance via titles/URIs; graph contracts/integration + Playwright graph spec now green locally. Added unit/UI tests covering container hierarchy + parent selection.  
 - **Next:** Home server deployment packaging (frontend container + production compose + reverse proxy), then Phase 3 eval design (multi-vector/observability).
 
 ---
@@ -119,5 +120,5 @@
 ## Context Hash
 
 **Algorithm:** SHA-256 of CONTEXT.md + PROGRESS.md + VISION.md  
-**Current Hash:** cb524e982fb9f075f2c83be38175ae899518b0571979af10d731f989c92d9b38  
+**Current Hash:** 6c3f9e5c4fcdc4ac7ebcb5ac9abb412ca145df7471d716629384b6416aee7065  
 **Purpose:** Verify agents start session with synchronized state

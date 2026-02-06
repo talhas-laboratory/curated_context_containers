@@ -5,6 +5,46 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$REPO_ROOT/docker/compose.home.yaml}"
 ENV_FILE="${ENV_FILE:-$REPO_ROOT/docker/.env.home}"
 
+if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [ "${ALLOW_DIRTY:-0}" != "1" ]; then
+    if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
+      echo "Refusing to deploy from a dirty git worktree."
+      echo "Commit/stash changes first, or override with: ALLOW_DIRTY=1 $0"
+      git -C "$REPO_ROOT" status --porcelain
+      exit 1
+    fi
+  fi
+  echo "Deploying git SHA: $(git -C "$REPO_ROOT" rev-parse --short=12 HEAD)"
+
+  if [ "${PIN_IMAGES_TO_GIT_SHA:-0}" = "1" ]; then
+    origin_url="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)"
+    owner_repo="${GITHUB_REPOSITORY:-}"
+    if [ -z "$owner_repo" ]; then
+      # Supports both:
+      # - https://github.com/OWNER/REPO.git
+      # - git@github.com:OWNER/REPO.git
+      if [[ "$origin_url" =~ github\\.com[:/]+([^/]+)/([^/.]+)(\\.git)?$ ]]; then
+        owner_repo="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+      fi
+    fi
+
+    if [ -z "$owner_repo" ]; then
+      echo "PIN_IMAGES_TO_GIT_SHA=1 requested, but couldn't determine GitHub repo slug."
+      echo "Set GITHUB_REPOSITORY=OWNER/REPO and retry."
+      exit 1
+    fi
+
+    sha_tag="sha-$(git -C "$REPO_ROOT" rev-parse --short=7 HEAD)"
+    export LLC_FRONTEND_IMAGE="ghcr.io/${owner_repo}-frontend:${sha_tag}"
+    export LLC_MCP_IMAGE="ghcr.io/${owner_repo}-mcp:${sha_tag}"
+    export LLC_WORKERS_IMAGE="ghcr.io/${owner_repo}-workers:${sha_tag}"
+    echo "Pinned images to ${sha_tag}"
+    echo "  LLC_FRONTEND_IMAGE=${LLC_FRONTEND_IMAGE}"
+    echo "  LLC_MCP_IMAGE=${LLC_MCP_IMAGE}"
+    echo "  LLC_WORKERS_IMAGE=${LLC_WORKERS_IMAGE}"
+  fi
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE"
   echo "Create it from docker/.env.home.example and set LLC_MCP_TOKEN + image tags."

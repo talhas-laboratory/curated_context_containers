@@ -1,0 +1,2 @@
+# Daily backup at 02:00
+0 2 * * * BACKUP_ROOT=/srv/llc/backups RETENTION_DAYS=14 /srv/llc/curated_context_containers/scripts/backup_prod.sh >> /var/log/llc-backup.log 2>&1

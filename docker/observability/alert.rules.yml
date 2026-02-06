@@ -1,0 +1,42 @@
+groups:
+  - name: service-health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service down: {{ $labels.job }}"
+          description: "Prometheus target {{ $labels.job }} has been down for more than 2 minutes."
+
+  - name: search-errors
+    rules:
+      - alert: McpSearchErrorSpike
+        expr: increase(llc_search_requests_total{status="error"}[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Search error spike"
+          description: "MCP search error count exceeded threshold in the last 10m."
+
+  - name: backups
+    rules:
+      - alert: BackupStale
+        expr: time() - llc_backup_last_success_timestamp > 172800
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backups stale"
+          description: "No successful backup in the last 48 hours."
+
+      - alert: BackupMetricMissing
+        expr: absent(llc_backup_last_success_timestamp)
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backup metric missing"
+          description: "Backup metric not found; backup job may not be running."

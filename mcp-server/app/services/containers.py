@@ -30,6 +30,7 @@ def _stats_from_dict(payload: dict | None) -> ContainerStats:
 def _to_summary(model: Container) -> ContainerSummary:
     return ContainerSummary(
         id=str(model.id),
+        parent_id=str(model.parent_id) if model.parent_id else None,
         name=model.name,
         theme=model.theme,
         modalities=[str(m) for m in (model.modalities or [])],
@@ -80,11 +81,31 @@ async def list_containers(
     stmt = select(Container)
     if request.state and request.state != "all":
         stmt = stmt.where(Container.state == request.state)
+    if request.parent_id:
+        parent_uuid = _maybe_uuid(request.parent_id)
+        if parent_uuid is None:
+            parent = (
+                await session.execute(select(Container.id).where(Container.name == request.parent_id))
+            ).scalar_one_or_none()
+            if parent is None:
+                return [], 0
+            parent_uuid = parent
+        stmt = stmt.where(Container.parent_id == parent_uuid)
     stmt = stmt.order_by(Container.created_at.desc()).limit(request.limit).offset(request.offset)
 
     total_stmt = select(func.count()).select_from(Container)
     if request.state and request.state != "all":
         total_stmt = total_stmt.where(Container.state == request.state)
+    if request.parent_id:
+        parent_uuid = _maybe_uuid(request.parent_id)
+        if parent_uuid is None:
+            parent = (
+                await session.execute(select(Container.id).where(Container.name == request.parent_id))
+            ).scalar_one_or_none()
+            if parent is None:
+                return [], 0
+            parent_uuid = parent
+        total_stmt = total_stmt.where(Container.parent_id == parent_uuid)
 
     result = await session.execute(stmt)
     containers = result.scalars().all()

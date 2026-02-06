@@ -1,7 +1,7 @@
 # API Contracts — MCP v1 Endpoints
 
 **Owner:** Silent Architect  
-**Last Updated:** 2025-12-01T17:35:00Z  
+**Last Updated:** 2026-02-01T12:15:00Z  
 **Status:** 🟡 In Progress — Phase 2 image/crossmodal/rerank/refresh/export documented
 
 ---
@@ -82,6 +82,8 @@ All responses share the envelope:
 
 All POST/PATCH endpoints accept JSON payload; GET endpoints return JSON; DELETE returns JSON confirmation.
 
+**Hierarchy Note:** `containers.create` accepts optional `parent_id` (uuid or slug). When provided, the new container inherits the parent’s `policy` field.
+
 ---
 
 ## 1. `containers.list`
@@ -96,6 +98,7 @@ All POST/PATCH endpoints accept JSON payload; GET endpoints return JSON; DELETE 
   "limit": 50,
   "offset": 0,
   "search": "optional substring",
+  "parent_id": "optional parent container (uuid or slug)",
   "include_stats": true
 }
 ```
@@ -107,6 +110,7 @@ Defaults: `state="active"`, `limit=25`, `offset=0`, `include_stats=false`.
   "containers": [
     {
       "id": "f2a...",
+      "parent_id": "a1b... (null for top-level)",
       "name": "expressionist-art",
       "theme": "German Expressionism",
       "modalities": ["text","image"],
@@ -153,6 +157,7 @@ If slug provided, server resolves to canonical ID.
 {
   "container": {
     "id": "f2a...",
+    "parent_id": "a1b... (null for top-level)",
     "name": "expressionist-art",
     "theme": "German Expressionist paintings",
     "description": "...",
@@ -314,6 +319,7 @@ If slug provided, server resolves to canonical ID.
 **Validation Rules:**
 - `k` 1..50
 - All requested containers must exist and be `state != 'archived'`
+- When a container has descendants, the search set is expanded to include subcontainers
 - When `mode=bm25`, query embedding is skipped but `issues` notes `VECTOR_SKIPPED`
 - When `diagnostics=false`, diagnostics field omitted
  - `mode` also accepts `graph` and `hybrid_graph`; `graph` requires text query; `graph.max_hops` 1..3.
@@ -325,7 +331,40 @@ If slug provided, server resolves to canonical ID.
 
 ---
 
-## 5. `documents.list`
+## 5. `containers.delete`
+
+**Route:** `DELETE /v1/containers/{id}`  
+**Purpose:** Archive a container (soft delete) or permanently remove it and associated data.
+
+**Query Params:**
+```
+permanent=true|false   # default false
+```
+
+**Response Payload:**
+```json
+{
+  "version": "v1",
+  "request_id": "uuid",
+  "success": true,
+  "container_id": "f2a...",
+  "message": "Container archived successfully",
+  "timings_ms": {},
+  "issues": []
+}
+```
+
+**Validation Rules:**
+- `id` must resolve to an existing container (UUID or slug)
+- `permanent=false` archives the container (state=`archived`) and its descendants
+- `permanent=true` removes container metadata, vectors, and blobs for the container and its descendants (best-effort cleanup)
+
+**Issues:**
+- `CONTAINER_NOT_FOUND` if container lookup fails
+
+---
+
+## 6. `documents.list`
 
 **Route:** `POST /v1/documents/list`  
 **Purpose:** Enumerate embedded documents (and chunk counts) for a container so clients can inspect current state.
@@ -373,7 +412,7 @@ If slug provided, server resolves to canonical ID.
 
 ---
 
-## 6. `documents.delete`
+## 7. `documents.delete`
 
 **Route:** `POST /v1/documents/delete`  
 **Purpose:** Remove a specific document, its chunks, and associated vectors/blobs from a container.
@@ -407,7 +446,7 @@ If slug provided, server resolves to canonical ID.
 
 ---
 
-## 7. `admin.refresh` (Phase 2 Stub)
+## 8. `admin.refresh` (Phase 2 Stub)
 
 **Route:** `POST /v1/admin/refresh`
 
@@ -434,7 +473,7 @@ If slug provided, server resolves to canonical ID.
 
 ---
 
-## 8. `admin.export` (Phase 2)
+## 9. `admin.export` (Phase 2)
 
 **Route:** `POST /v1/admin/export`
 

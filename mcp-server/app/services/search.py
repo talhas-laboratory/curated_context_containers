@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -167,6 +167,60 @@ def _latency_budget(containers: List[Container], manifest_map: Dict[str, dict]) 
         if budget_override:
             budget = min(budget, int(budget_override))
     return budget
+
+
+def _normalize_container_ref(ref: str) -> str | None:
+    try:
+        return str(UUID(ref))
+    except Exception:
+        return None
+
+
+def _expand_container_tree(
+    containers: List[Container],
+    requested_refs: List[str],
+) -> Tuple[List[Container], List[str]]:
+    """Expand requested container refs to include descendants."""
+    if not containers:
+        return [], []
+    if not requested_refs:
+        return containers, [str(c.id) for c in containers]
+
+    by_id = {str(c.id): c for c in containers}
+    by_name = {c.name: str(c.id) for c in containers}
+    children_map: dict[str, list[str]] = {}
+    for c in containers:
+        parent_id = getattr(c, "parent_id", None)
+        if parent_id:
+            children_map.setdefault(str(parent_id), []).append(str(c.id))
+
+    base_ids: list[str] = []
+    for ref in requested_refs:
+        normalized = _normalize_container_ref(ref)
+        if normalized and normalized in by_id:
+            base_ids.append(normalized)
+            continue
+        if ref in by_name:
+            base_ids.append(by_name[ref])
+
+    if not base_ids:
+        return [], []
+
+    expanded_ids: list[str] = []
+    seen: set[str] = set()
+
+    def visit(cid: str) -> None:
+        if cid in seen:
+            return
+        seen.add(cid)
+        expanded_ids.append(cid)
+        for child_id in children_map.get(cid, []):
+            visit(child_id)
+
+    for cid in base_ids:
+        visit(cid)
+
+    return [by_id[cid] for cid in expanded_ids if cid in by_id], expanded_ids
 
 
 def _rerank_config(retrieval_configs: Dict[str, dict]) -> dict:
@@ -339,13 +393,6 @@ async def _vector_stage(
 async def search_response(session: AsyncSession, request: SearchRequest) -> SearchResponse:
     request_id = str(uuid4())
     container_id_filters = request.container_ids or []
-    container_uuid_filters: list[UUID] = []
-    container_name_filters: list[str] = []
-    for cid in container_id_filters:
-        try:
-            container_uuid_filters.append(UUID(cid))
-        except Exception:
-            container_name_filters.append(cid)
     diagnostics = baseline_diagnostics(request.mode, request.container_ids)
     if request.query_image_base64 and request.query:
         diagnostics["query_type"] = "mixed"
@@ -402,14 +449,9 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     )
 
     container_stmt = select(Container).where(Container.state != "archived")
-    if container_uuid_filters or container_name_filters:
-        predicates = []
-        if container_uuid_filters:
-            predicates.append(Container.id.in_(container_uuid_filters))
-        if container_name_filters:
-            predicates.append(Container.name.in_(container_name_filters))
-        container_stmt = container_stmt.where(or_(*predicates))
-    containers = (await session.execute(container_stmt)).scalars().all()
+    containers_all = (await session.execute(container_stmt)).scalars().all()
+    containers, expanded_ids = _expand_container_tree(containers_all, container_id_filters)
+    diagnostics["expanded_containers"] = expanded_ids
     manifest_map: Dict[str, dict] = {}
     container_map = {}
     blocked: List[str] = []
@@ -618,7 +660,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
 
     total_ms = timings.get("total_ms", 0)
     over_budget = max(total_ms - latency_budget, 0)
-    diagnostics["containers"] = request.container_ids or list(container_map.keys())
+    diagnostics["containers"] = expanded_ids or request.container_ids or list(container_map.keys())
     diagnostics["latency_budget_ms"] = latency_budget
     diagnostics["latency_over_budget_ms"] = over_budget
 
@@ -643,7 +685,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
         request.mode,
         timings,
         response.returned,
-        request.container_ids or list(container_map.keys()),
+        expanded_ids or request.container_ids or list(container_map.keys()),
         issues,
     )
     LOGGER.info(

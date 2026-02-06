@@ -232,5 +232,51 @@ class QdrantAdapter:
 
         await loop.run_in_executor(None, _delete)
 
+    async def delete_container(self, container_id: str, modalities: List[str] | None = None) -> None:
+        """Delete all collections associated with a container (best-effort)."""
+        if not container_id:
+            return
+        loop = asyncio.get_running_loop()
+        target_modalities = sorted(
+            {
+                *(modalities or []),
+                "text",
+                "pdf",
+                "image",
+                "web",
+            }
+        )
+
+        def _delete():
+            for modality in target_modalities:
+                collection = self._collection_name(container_id, modality)
+                try:
+                    self.client.delete_collection(collection_name=collection)
+                    self.collections.discard(collection)
+                except UnexpectedResponse as exc:  # pragma: no cover - runtime safeguard
+                    status_code = getattr(exc, "status_code", None)
+                    if status_code and status_code == 404:
+                        self.collections.discard(collection)
+                        continue
+                    LOGGER.warning(
+                        "qdrant_collection_delete_failed",
+                        extra={
+                            "collection": collection,
+                            "container_id": container_id,
+                            "error": str(exc),
+                        },
+                    )
+                except Exception as exc:  # pragma: no cover - runtime safeguard
+                    LOGGER.warning(
+                        "qdrant_collection_delete_failed",
+                        extra={
+                            "collection": collection,
+                            "container_id": container_id,
+                            "error": str(exc),
+                        },
+                    )
+
+        await loop.run_in_executor(None, _delete)
+
 
 qdrant_adapter = QdrantAdapter()

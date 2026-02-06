@@ -1,0 +1,185 @@
+version: "3.9"
+
+services:
+  reverse-proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/llc/caddy:/data
+    depends_on:
+      frontend:
+        condition: service_healthy
+      mcp:
+        condition: service_healthy
+
+  migrations:
+    image: ${LLC_MCP_IMAGE:?set LLC_MCP_IMAGE}
+    restart: "no"
+    environment:
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+
+  frontend:
+    image: ${LLC_FRONTEND_IMAGE:?set LLC_FRONTEND_IMAGE}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_MCP_BASE_URL: /api
+      NEXT_PUBLIC_MCP_TOKEN: ${LLC_MCP_TOKEN}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_INTERNAL_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: localminio
+      MINIO_SECRET_KEY: localminio123
+    healthcheck:
+      test: [ "CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mcp:
+    image: ${LLC_MCP_IMAGE:?set LLC_MCP_IMAGE}
+    restart: unless-stopped
+    environment:
+      LLC_ENVIRONMENT: production
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+      LLC_QDRANT_URL: http://qdrant:6333
+      LLC_MINIO_ENDPOINT: http://minio:9000
+      LLC_MINIO_ACCESS_KEY: localminio
+      LLC_MINIO_SECRET_KEY: localminio123
+      LLC_NOMIC_API_KEY: ${LLC_NOMIC_API_KEY:-}
+      LLC_EMBEDDER_PROVIDER: ${LLC_EMBEDDER_PROVIDER:-nomic}
+      LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
+      LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
+      LLC_MCP_TOKEN: ${LLC_MCP_TOKEN}
+      LLC_MANIFESTS_PATH: /app/manifests
+      LLC_NEO4J_URI: ${LLC_NEO4J_URI:-bolt://neo4j:7687}
+      LLC_NEO4J_USER: ${LLC_NEO4J_USER:-neo4j}
+      LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
+      LLC_GRAPH_MAX_HOPS_DEFAULT: ${LLC_GRAPH_MAX_HOPS_DEFAULT:-2}
+      LLC_GRAPH_QUERY_TIMEOUT_MS: ${LLC_GRAPH_QUERY_TIMEOUT_MS:-1200}
+      LLC_GRAPH_ENABLE_RAW_CYPHER: ${LLC_GRAPH_ENABLE_RAW_CYPHER:-true}
+      LLC_GRAPH_NL2CYPHER_ENABLED: "true"
+      LLC_GRAPH_NL2CYPHER_URL: ${LLC_GRAPH_NL2CYPHER_URL:-}
+      LLC_GRAPH_NL2CYPHER_API_KEY: ${LLC_GRAPH_NL2CYPHER_API_KEY:-}
+      LLC_GRAPH_NL2CYPHER_MODEL: ${LLC_GRAPH_NL2CYPHER_MODEL:-anthropic/claude-3-haiku}
+      LLC_GRAPH_NL2CYPHER_TIMEOUT_MS: ${LLC_GRAPH_NL2CYPHER_TIMEOUT_MS:-8000}
+      LLC_ADMIN_FASTPATH: "false"
+      MCP_CORS_ORIGINS: ${MCP_CORS_ORIGINS:-http://talhas-laboratory.tailefe062.ts.net}
+    volumes:
+      - /srv/llc/manifests:/app/manifests:ro
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7801/ready')\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  workers:
+    image: ${LLC_WORKERS_IMAGE:?set LLC_WORKERS_IMAGE}
+    restart: unless-stopped
+    environment:
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+      LLC_QDRANT_URL: http://qdrant:6333
+      LLC_MINIO_ENDPOINT: http://minio:9000
+      LLC_MINIO_ACCESS_KEY: localminio
+      LLC_MINIO_SECRET_KEY: localminio123
+      LLC_NOMIC_API_KEY: ${LLC_NOMIC_API_KEY:-}
+      LLC_EMBEDDER_PROVIDER: ${LLC_EMBEDDER_PROVIDER:-nomic}
+      LLC_GOOGLE_API_KEY: ${LLC_GOOGLE_API_KEY:-}
+      LLC_GOOGLE_EMBED_MODEL: ${LLC_GOOGLE_EMBED_MODEL:-models/text-embedding-004}
+      LLC_NEO4J_URI: ${LLC_NEO4J_URI:-bolt://neo4j:7687}
+      LLC_NEO4J_USER: ${LLC_NEO4J_USER:-neo4j}
+      LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
+      LLC_GRAPH_MAX_HOPS_DEFAULT: ${LLC_GRAPH_MAX_HOPS_DEFAULT:-2}
+      LLC_GRAPH_QUERY_TIMEOUT_MS: ${LLC_GRAPH_QUERY_TIMEOUT_MS:-1200}
+      LLC_GRAPH_ENABLE_RAW_CYPHER: ${LLC_GRAPH_ENABLE_RAW_CYPHER:-true}
+      LLC_GRAPH_LLM_ENABLED: ${LLC_GRAPH_LLM_ENABLED:-false}
+      LLC_GRAPH_LLM_MODEL: ${LLC_GRAPH_LLM_MODEL:-qwen/qwen3-235b-a22b-thinking-2507}
+      LLC_OPENROUTER_API_KEY: ${LLC_OPENROUTER_API_KEY:-}
+      WORKER_POLL_INTERVAL: 5
+      LLC_MANIFESTS_PATH: /app/manifests
+    volumes:
+      - /srv/llc/manifests:/app/manifests:ro
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import os; os.kill(1, 0)\"" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: localpw
+      POSTGRES_DB: registry
+    volumes:
+      - /srv/llc/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U local -d registry" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    restart: unless-stopped
+    volumes:
+      - /srv/llc/qdrant:/qdrant/storage
+    environment:
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: "true"
+      QDRANT__SERVICE__GRPC_PORT: 6334
+
+  minio:
+    image: ${MINIO_IMAGE:?set MINIO_IMAGE}
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: localminio
+      MINIO_ROOT_PASSWORD: localminio123
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    volumes:
+      - /srv/llc/minio:/data
+
+  neo4j:
+    image: neo4j:5.23
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${LLC_NEO4J_PASSWORD:-localneo4j}
+      LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
+      NEO4J_metrics_prometheus_enabled: "true"
+      NEO4J_metrics_prometheus_endpoint: "0.0.0.0:2004"
+    volumes:
+      - /srv/llc/neo4j/data:/data
+      - /srv/llc/neo4j/logs:/logs
+    healthcheck:
+      test: [ "CMD-SHELL", "cypher-shell -u neo4j -p ${LLC_NEO4J_PASSWORD:-localneo4j} 'RETURN 1' || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10

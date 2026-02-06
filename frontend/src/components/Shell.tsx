@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-import { layoutTokens, typographyTokens } from '../lib/tokens';
+import { layoutTokens } from '../lib/tokens';
 
 interface ShellProps {
   sidebar?: ReactNode;
@@ -26,7 +26,6 @@ export function Shell({ sidebar, children, headline = 'Local Latent Containers',
       <header className="border-b border-line-1 bg-paper-0">
         <div className={`mx-auto flex ${layoutTokens.pageMaxWidth} items-center justify-between px-6 py-6 lg:px-10`}>
           <div>
-            <p className={typographyTokens.microLabel}>Local Latent Containers</p>
             <h1 className="text-2xl font-light text-ink-1">{headline}</h1>
             {description && <p className="text-sm text-ink-2">{description}</p>}
           </div>
@@ -65,4 +64,3 @@ export function Shell({ sidebar, children, headline = 'Local Latent Containers',
     </div>
   );
 }
-

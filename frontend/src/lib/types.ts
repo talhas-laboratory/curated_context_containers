@@ -4,6 +4,7 @@
 
 export interface ContainerSummary {
   id: string;
+  parent_id?: string | null;
   name: string;
   theme: string;
   modalities: string[];
@@ -107,6 +108,7 @@ export interface ListContainersRequest {
   limit?: number;
   offset?: number;
   search?: string;
+  parent_id?: string;
   include_stats?: boolean;
 }
 
@@ -128,6 +130,7 @@ export interface DescribeContainerResponse {
 export interface CreateContainerRequest {
   name: string;
   theme: string;
+  parent_id?: string;
   description?: string;
   modalities?: string[];
   embedder?: string;
@@ -138,6 +141,11 @@ export interface CreateContainerRequest {
   visibility?: 'private' | 'team' | 'public';
   collaboration_policy?: 'read-only' | 'contribute';
   auto_refresh?: boolean;
+}
+
+export interface DeleteContainerRequest {
+  container: string; // UUID or slug
+  permanent?: boolean;
 }
 
 export interface ContainerLifecycleResponse {

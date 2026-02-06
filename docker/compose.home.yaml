@@ -16,7 +16,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ${LLC_FRONTEND_IMAGE:-ghcr.io/OWNER/REPO-frontend:latest}
+    image: ${LLC_FRONTEND_IMAGE:?set LLC_FRONTEND_IMAGE}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_MCP_BASE_URL: /api
@@ -26,8 +26,18 @@ services:
       MINIO_ACCESS_KEY: localminio
       MINIO_SECRET_KEY: localminio123
 
+  migrations:
+    image: ${LLC_MCP_IMAGE:?set LLC_MCP_IMAGE}
+    restart: "no"
+    environment:
+      LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+
   mcp:
-    image: ${LLC_MCP_IMAGE:-ghcr.io/OWNER/REPO-mcp:latest}
+    image: ${LLC_MCP_IMAGE:?set LLC_MCP_IMAGE}
     restart: unless-stopped
     environment:
       LLC_ENVIRONMENT: production
@@ -58,6 +68,8 @@ services:
     volumes:
       - /srv/llc/manifests:/app/manifests:ro
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       qdrant:
@@ -73,7 +85,7 @@ services:
       retries: 5
 
   workers:
-    image: ${LLC_WORKERS_IMAGE:-ghcr.io/OWNER/REPO-workers:latest}
+    image: ${LLC_WORKERS_IMAGE:?set LLC_WORKERS_IMAGE}
     restart: unless-stopped
     environment:
       LLC_POSTGRES_DSN: postgresql://local:localpw@postgres:5432/registry
@@ -99,6 +111,8 @@ services:
     volumes:
       - /srv/llc/manifests:/app/manifests:ro
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       qdrant:
@@ -133,7 +147,7 @@ services:
       QDRANT__SERVICE__GRPC_PORT: 6334
 
   minio:
-    image: minio/minio:latest
+    image: ${MINIO_IMAGE:?set MINIO_IMAGE}
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:

@@ -3,14 +3,20 @@
 This placeholder wires up the health endpoint so compose stacks can smoke-test connectivity
 while the full MCP tool surface is implemented.
 """
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+import asyncio
 import logging
 import os
 
+from sqlalchemy import text
+
+from app.adapters.minio import minio_adapter
+from app.adapters.neo4j import neo4j_adapter
+from app.adapters.qdrant import qdrant_adapter
 from .api.routes import register_routes
-from .db.session import get_session
+from .db.session import get_session, AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +83,54 @@ app.add_middleware(AgentTrackingMiddleware)
 @app.get("/health", tags=["health"])
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/ready", tags=["health"])
+async def readiness(response: Response) -> dict[str, object]:
+    checks: dict[str, bool] = {}
+    errors: dict[str, str] = {}
+
+    async def check_db() -> bool:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+        return True
+
+    def check_qdrant() -> bool:
+        qdrant_adapter.client.get_collections()
+        return True
+
+    def check_minio() -> bool:
+        minio_adapter.client.bucket_exists(minio_adapter.bucket)
+        return True
+
+    def check_neo4j() -> bool:
+        return neo4j_adapter.healthcheck()
+
+    async def run(name: str, task: asyncio.Future) -> None:
+        try:
+            ok = await task
+            checks[name] = bool(ok)
+            if not ok:
+                errors[name] = "unhealthy"
+        except Exception as exc:
+            checks[name] = False
+            errors[name] = str(exc)
+
+    await asyncio.gather(
+        run("postgres", check_db()),
+        run("qdrant", asyncio.to_thread(check_qdrant)),
+        run("minio", asyncio.to_thread(check_minio)),
+        run("neo4j", asyncio.to_thread(check_neo4j)),
+    )
+
+    all_ok = all(checks.values()) if checks else True
+    if not all_ok:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    payload: dict[str, object] = {"status": "ok" if all_ok else "degraded", "checks": checks}
+    if errors:
+        payload["errors"] = errors
+    return payload
 
 
 register_routes(app)

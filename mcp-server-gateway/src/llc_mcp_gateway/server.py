@@ -74,6 +74,10 @@ class LLCMCPGateway:
                                 "type": "string",
                                 "description": "Optional substring to filter container names",
                             },
+                            "parent_id": {
+                                "type": "string",
+                                "description": "Optional parent container UUID or slug",
+                            },
                             "include_stats": {
                                 "type": "boolean",
                                 "default": True,
@@ -196,6 +200,10 @@ class LLCMCPGateway:
                                 "type": "string",
                                 "description": "Optional description",
                             },
+                            "parent_id": {
+                                "type": "string",
+                                "description": "Optional parent container UUID or slug",
+                            },
                             "modalities": {
                                 "type": "array",
                                 "items": {"type": "string"},
@@ -240,6 +248,29 @@ class LLCMCPGateway:
                                 "type": "boolean",
                                 "default": False,
                                 "description": "Auto-update on manifest changes",
+                            },
+                        },
+                    },
+                ),
+                Tool(
+                    name="containers_delete",
+                    description=(
+                        "Archive or permanently delete a container. "
+                        "By default this archives (soft delete). "
+                        "Set permanent=true to remove the container and associated data."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "required": ["container"],
+                        "properties": {
+                            "container": {
+                                "type": "string",
+                                "description": "Container UUID or slug name",
+                            },
+                            "permanent": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "If true, hard delete; otherwise archive",
                             },
                         },
                     },
@@ -413,6 +444,7 @@ class LLCMCPGateway:
             "containers_describe": "/v1/containers/describe",
             "containers_search": "/v1/search",
             "containers_create": "/v1/containers/create",
+            "containers_delete": "/v1/containers",
             "containers_add": "/v1/containers/add",
             "containers_graph_search": "/v1/containers/graph_search",
             "containers_graph_upsert": "/v1/containers/graph_upsert",
@@ -434,7 +466,23 @@ class LLCMCPGateway:
         if self.agent_name:
             headers["X-Agent-Name"] = self.agent_name
 
-        if name == "containers_graph_schema":
+        if name == "containers_delete":
+            container = arguments.get("container")
+            if not container:
+                raise ValueError("containers_delete requires 'container'")
+            params = {}
+            if "permanent" in arguments:
+                value = arguments.get("permanent")
+                if isinstance(value, str):
+                    params["permanent"] = value.strip().lower() in {"true", "1", "yes"}
+                else:
+                    params["permanent"] = bool(value)
+            response = await self.client.delete(
+                f"{url}/{container}",
+                params=params,
+                headers=headers,
+            )
+        elif name == "containers_graph_schema":
             response = await self.client.get(url, params=arguments, headers=headers)
         else:
             response = await self.client.post(url, json=arguments, headers=headers)

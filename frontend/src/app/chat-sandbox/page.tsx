@@ -148,7 +148,7 @@ export default function ChatSandboxPage() {
         {
           id: createId(),
           role: 'system',
-          content: `Ingestion queued for "${file.name}". Processing...`,
+          content: `Queued "${file.name}".`,
           timestamp: Date.now(),
         },
       ]);
@@ -159,7 +159,7 @@ export default function ChatSandboxPage() {
         {
           id: createId(),
           role: 'system',
-          content: `Upload failed: ${(error as Error).message}. See console logs.`,
+          content: `Upload failed: ${(error as Error).message}.`,
           timestamp: Date.now(),
         },
       ]);
@@ -304,7 +304,6 @@ export default function ChatSandboxPage() {
 
       <GlassCard className="space-y-4">
         <h3 className="font-serif text-lg italic text-ink-1">Ingestion Queue</h3>
-        {jobs.length === 0 && <p className="text-sm text-ink-2 px-1">Uploads appear here.</p>}
         <ul className="space-y-3">
           <AnimatePresence initial={false}>
             {jobs.map((job) => (
@@ -324,12 +323,6 @@ export default function ChatSandboxPage() {
           </AnimatePresence>
         </ul>
       </GlassCard>
-      
-      <div className="px-2">
-        <p className="text-xs text-ink-2/60 italic leading-relaxed text-center">
-          "Retrieval is memory, not search."
-        </p>
-      </div>
     </div>
   );
 
@@ -367,7 +360,7 @@ export default function ChatSandboxPage() {
           className="absolute top-0 right-0 left-0 flex justify-center -mt-8 pointer-events-none"
         >
            <span className="text-xs font-medium tracking-widest uppercase text-ink-2/50 bg-white/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
-             {activeContainer ? activeContainer.name : 'Select Container'}
+             {activeContainer ? activeContainer.name : 'Select container'}
            </span>
         </motion.div>
 
@@ -377,8 +370,7 @@ export default function ChatSandboxPage() {
             <div className="h-full flex items-center justify-center p-12">
               <GlassCard className="text-center max-w-md mx-auto border-dashed border-white/40 bg-white/10">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 mx-auto mb-4 blur-xl opacity-60"></div>
-                <p className="text-ink-2 font-serif italic text-lg mb-2">Silence is the canvas.</p>
-                <p className="text-sm text-ink-2/70">Select a container, drop a PDF, or ask a question to begin.</p>
+                <p className="text-sm text-ink-2/70">Select a container and upload a PDF to start.</p>
               </GlassCard>
             </div>
           )}
@@ -521,15 +513,6 @@ export default function ChatSandboxPage() {
         onComplete={(jobId) => {
           setCompletedJobIds((prev) => new Set([...prev, jobId]));
           setActiveJobIds((prev) => prev.filter((id) => id !== jobId));
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: createId(),
-              role: 'system',
-              content: 'Document is ready to search!',
-              timestamp: Date.now(),
-            },
-          ]);
         }}
         onError={(jobId, error) => {
           setCompletedJobIds((prev) => new Set([...prev, jobId]));

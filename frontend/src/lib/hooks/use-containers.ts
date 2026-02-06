@@ -3,13 +3,14 @@
  */
 
 import { useMutation, useQuery, useQueryClient, UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';
-import { MCPError, post } from '../mcp-client';
+import { MCPError, del, post } from '../mcp-client';
 import type {
   ListContainersRequest,
   ListContainersResponse,
   DescribeContainerRequest,
   DescribeContainerResponse,
   CreateContainerRequest,
+  DeleteContainerRequest,
   ContainerLifecycleResponse,
 } from '../types';
 
@@ -80,5 +81,34 @@ export function useDescribeContainer(
     enabled: !!idOrSlug,
     staleTime: 30 * 1000,
     ...options,
+  });
+}
+
+/**
+ * Delete (archive or permanently delete) a container
+ */
+export function useDeleteContainer(
+  options?: Omit<
+    UseMutationOptions<ContainerLifecycleResponse, MCPError, DeleteContainerRequest>,
+    'mutationFn'
+  >
+) {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...restOptions } = options || {};
+
+  return useMutation<ContainerLifecycleResponse, MCPError, DeleteContainerRequest>({
+    mutationFn: async ({ container, permanent }) => {
+      const query = permanent ? '?permanent=true' : '';
+      const response = await del<ContainerLifecycleResponse>(`/v1/containers/${container}${query}`);
+      return response;
+    },
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ['containers'] });
+      if (variables?.container) {
+        queryClient.invalidateQueries({ queryKey: ['containers', 'describe', variables.container] });
+      }
+      onSuccess?.(data, variables, context, undefined);
+    },
+    ...restOptions,
   });
 }

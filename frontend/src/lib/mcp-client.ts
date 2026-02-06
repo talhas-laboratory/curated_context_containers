@@ -125,10 +125,24 @@ export async function fetchJson<T = unknown>(
       
       try {
         const json = await response.json();
+        const detail = json.detail;
+        const detailMessage = (() => {
+          if (!detail) return undefined;
+          if (typeof detail === 'string') return detail;
+          if (Array.isArray(detail)) {
+            return detail
+              .map((entry) => entry?.msg || entry?.message || JSON.stringify(entry))
+              .join('; ');
+          }
+          if (typeof detail === 'object') {
+            return (detail as { message?: string }).message || JSON.stringify(detail);
+          }
+          return String(detail);
+        })();
         errorData = {
           code: json.error?.code || 'HTTP_ERROR',
           status: response.status,
-          message: json.error?.message || json.message || response.statusText,
+          message: json.error?.message || json.message || detailMessage || response.statusText,
           issues: json.issues || [],
         };
       } catch (e) {
@@ -192,3 +206,15 @@ export async function post<T = unknown>(
   });
 }
 
+/**
+ * DELETE request helper
+ */
+export async function del<T = unknown>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T & MCPResponse<T>> {
+  return fetchJson<T>(endpoint, {
+    ...options,
+    method: 'DELETE',
+  });
+}

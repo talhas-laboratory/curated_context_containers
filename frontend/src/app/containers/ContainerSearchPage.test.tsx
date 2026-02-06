@@ -47,6 +47,25 @@ describe('ContainerSearchPage', () => {
     expect(status).toHaveTextContent('No hits');
   });
 
+  it('surfaces subcontainers and allows toggling search scope', async () => {
+    const user = userEvent.setup();
+    renderWithQueryClient(<ContainerSearchPage />);
+
+    await screen.findAllByText('Expressionist Art');
+
+    const subcontainer = await screen.findByTestId('subcontainer-item-container-2');
+    expect(subcontainer).toHaveTextContent('Expressionist Sketches');
+
+    const addButton = screen.getByRole('button', { name: /Add Expressionist Sketches to search scope/i });
+    await act(async () => {
+      await user.click(addButton);
+    });
+
+    expect(
+      screen.getByRole('button', { name: /Remove Expressionist Sketches from search scope/i })
+    ).toBeInTheDocument();
+  });
+
   it('renders graph results in graph mode with diagnostics', async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<ContainerSearchPage />);

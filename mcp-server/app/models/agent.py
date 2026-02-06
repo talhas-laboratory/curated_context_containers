@@ -11,6 +11,7 @@ class CreateContainerRequest(BaseModel):
     """Request to create a new container."""
     name: str = Field(description="Unique container name (slug)")
     theme: str = Field(description="Container theme/topic")
+    parent_id: Optional[str] = Field(default=None, description="Parent container UUID or slug")
     description: Optional[str] = None
     modalities: List[str] = Field(default=["text", "pdf", "image"], description="Allowed modalities")
     embedder: str = Field(default="google-gemma3-text", description="Embedder model")
@@ -149,7 +150,6 @@ class SubscribeToContainerResponse(BaseModel):
     request_id: str
     subscription: ContainerSubscription
     timings_ms: dict = Field(default_factory=dict)
-
 
 
 

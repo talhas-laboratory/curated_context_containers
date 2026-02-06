@@ -1,7 +1,7 @@
 # Interaction Patterns — User Flows
 
 **Owner:** IKB Designer (minimalist environment designer)  
-**Last Updated:** 2025-11-09  
+**Last Updated:** 2026-02-01  
 **Status:** 🟡 In Progress — Diagnostics-aware search patterns documented
 
 ---
@@ -125,6 +125,35 @@ This document defines the interaction patterns and user flows for Local Latent C
 - Click: Navigate to container search view
 - Keyboard: Tab navigation, Enter activates
 - Focus: 1px ink focus ring
+
+### Container Hierarchy
+**Flow:**
+1. Top-level containers render as primary cards.
+2. Subcontainers render in an indented grid beneath their parent with a subtle left rule.
+3. Subcontainer cards show a parent label and the container UUID.
+
+**Create Flow:**
+- Create form includes a “Parent container” selector (optional). When selected, the new container inherits the parent’s policy.
+
+**States:**
+- Parent with no children: normal card grid
+- Parent with children: children list shown under parent; spacing tighter
+
+### Container Deletion
+**Flow:**
+1. Hover a container card to reveal the archive/delete action.
+2. Click action to open confirmation modal with container stats and a permanent-delete checkbox.
+3. Submit archives by default; optional permanent delete removes vectors/blobs/metadata.
+4. Post-action banner confirms archive/delete and list refreshes.
+
+**States:**
+- Default: action hidden (opacity 0)
+- Hover/Focus: action visible (opacity 1)
+- Busy: modal submit button shows spinner, buttons disabled
+
+**A11y:**
+- Action button focusable with visible ring
+- Modal traps focus; Escape closes; Cancel returns focus to triggering action
 
 ---
 

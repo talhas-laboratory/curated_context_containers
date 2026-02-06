@@ -13,6 +13,7 @@ from llc_agents.models import (
     SearchMode,
     Job,
     Source,
+    ContainerLifecycleResponse,
 )
 
 
@@ -59,6 +60,7 @@ class ContainerClient:
         state: ContainerState = ContainerState.ACTIVE,
         limit: int = 25,
         offset: int = 0,
+        parent_id: Optional[str] = None,
         search: Optional[str] = None,
         include_stats: bool = True,
     ) -> list[Container]:
@@ -68,6 +70,7 @@ class ContainerClient:
             state: Filter by container state
             limit: Number of containers to return (max 100)
             offset: Pagination offset
+            parent_id: Optional parent container UUID or slug
             search: Optional substring to filter names
             include_stats: Include document/chunk counts
 
@@ -80,6 +83,7 @@ class ContainerClient:
                 "state": state.value,
                 "limit": limit,
                 "offset": offset,
+                "parent_id": parent_id,
                 "search": search,
                 "include_stats": include_stats,
             },
@@ -258,6 +262,27 @@ class ContainerClient:
 
         return [Job(**j) for j in jobs_data]
 
+    async def delete_container(
+        self,
+        container: str,
+        permanent: bool = False,
+    ) -> ContainerLifecycleResponse:
+        """Archive or permanently delete a container.
+
+        Args:
+            container: Container UUID or slug
+            permanent: If true, hard delete; otherwise archive
+
+        Returns:
+            ContainerLifecycleResponse
+        """
+        response = await self.session.delete(
+            f"/v1/containers/{container}",
+            params={"permanent": str(permanent).lower()},
+        )
+
+        return ContainerLifecycleResponse(**response.json())
+
     async def get_job_status(self, job_ids: list[str]) -> list[Job]:
         """Get status of ingestion jobs.
 
@@ -403,9 +428,6 @@ class SearchBuilder:
             diagnostics=self._diagnostics,
             filters=self._filters if self._filters else None,
         )
-
-
-
 
 
 

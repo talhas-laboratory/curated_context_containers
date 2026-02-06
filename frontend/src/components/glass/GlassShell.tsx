@@ -19,6 +19,8 @@ const navLinks = [
 
 export function GlassShell({ sidebar, children, headline, description }: GlassShellProps) {
   const pathname = usePathname();
+  const buildSha = process.env.NEXT_PUBLIC_BUILD_SHA;
+  const buildLabel = buildSha ? `build ${buildSha.slice(0, 7)}` : null;
 
   return (
     <div className="min-h-screen relative">
@@ -30,9 +32,6 @@ export function GlassShell({ sidebar, children, headline, description }: GlassSh
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="glass-panel rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto"
         >
-          <div className="px-4 font-serif italic text-ink-1 font-medium border-r border-line-2 pr-4 mr-1">
-            Latent Containers
-          </div>
           {navLinks.map((link) => {
             const active = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
@@ -54,6 +53,11 @@ export function GlassShell({ sidebar, children, headline, description }: GlassSh
               </Link>
             );
           })}
+          {buildLabel && (
+            <span className="ml-2 pl-2 border-l border-white/40 text-[10px] font-mono text-ink-2/70 select-none">
+              {buildLabel}
+            </span>
+          )}
         </motion.nav>
       </div>
 
@@ -85,8 +89,6 @@ export function GlassShell({ sidebar, children, headline, description }: GlassSh
     </div>
   );
 }
-
-
 
 
 

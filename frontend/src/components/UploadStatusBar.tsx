@@ -13,13 +13,13 @@ interface UploadStatusBarProps {
 function getStatusLabel(status: JobStatus['status']): string {
   switch (status) {
     case 'queued':
-      return 'Queued for processing...';
+      return 'Queued';
     case 'running':
-      return 'Embedding document...';
+      return 'Processing';
     case 'done':
-      return 'Ready to search';
+      return 'Ready';
     case 'failed':
-      return 'Upload failed';
+      return 'Failed';
     case 'not_found':
       return 'Job not found';
     default:
@@ -169,16 +169,6 @@ export function UploadStatusBar({ jobIds, onComplete, onError }: UploadStatusBar
                           transition={{ duration: 0.5, ease: 'easeOut' }}
                         />
                       </div>
-                    )}
-
-                    {job.status === 'done' && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-xs mt-2 font-medium"
-                      >
-                        Document is ready to search!
-                      </motion.p>
                     )}
 
                     {job.status === 'failed' && job.error && (

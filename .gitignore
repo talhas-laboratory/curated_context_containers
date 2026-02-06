@@ -1,5 +1,19 @@
 /.artifacts/
 .env
+.env.*
+.env.local
+.env.*.local
+# But DO commit templates:
+!.env.dev.template
+!.env.prod.template
+
+# Docker env files (never commit real secrets)
+docker/.env
+docker/.env.*
+!docker/.env.dev.template
+!docker/.env.prod.template
+!docker/.env.home.example
+
 .DS_Store
 __pycache__/
 *.pyc
@@ -13,5 +27,3 @@ build/
 *.egg-info/
 .venv/
 venv/
-.env.local
-.env.*.local

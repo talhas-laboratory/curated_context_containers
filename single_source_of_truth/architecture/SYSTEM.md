@@ -1,7 +1,7 @@
 # System Architecture — Local Latent Containers
 
 **Owner:** Silent Architect  
-**Last Updated:** 2025-11-09T01:30:00Z  
+**Last Updated:** 2026-02-01T12:15:00Z  
 **Status:** 🟡 In Progress — Baseline architecture defined, awaiting implementation
 
 ---
@@ -111,13 +111,14 @@ Local Latent Containers is a local-first retrieval system that exposes a determi
 
 ### 2. Search Flow (semantic/hybrid default)
 1. Client invokes `containers.search` with query text/image, target containers, mode, rerank toggle, diagnostics flag
-2. SearchService fetches manifests + container settings, builds query context (freshness lambda, dedup) from Postgres
-3. Embed query via Nomic adapter (cached by query hash where allowed)
-4. Parallel fan-out: Qdrant vector search per container/modality (k=100) and PostgreSQL BM25 search (k=100)
-5. Fuse candidates using Reciprocal Rank Fusion (weight vector_tier=0.5, bm25=0.5 by default)
-6. Optional rerank (Phase 2) reduces to k=10; Phase 1 returns fused ranking directly
-7. Apply dedup (cosine ≥0.92) and freshness boost (manifest lambda). Compose snippets using stored `chunks.text`
-8. DiagnosticsService aggregates stage timings, hit counts, and container statuses. Response returns consistent envelope
+2. If a target container has descendants, the server expands the search set to include subcontainers
+3. SearchService fetches manifests + container settings, builds query context (freshness lambda, dedup) from Postgres
+4. Embed query via Nomic adapter (cached by query hash where allowed)
+5. Parallel fan-out: Qdrant vector search per container/modality (k=100) and PostgreSQL BM25 search (k=100)
+6. Fuse candidates using Reciprocal Rank Fusion (weight vector_tier=0.5, bm25=0.5 by default)
+7. Optional rerank (Phase 2) reduces to k=10; Phase 1 returns fused ranking directly
+8. Apply dedup (cosine ≥0.92) and freshness boost (manifest lambda). Compose snippets using stored `chunks.text`
+9. DiagnosticsService aggregates stage timings, hit counts, and container statuses. Response returns consistent envelope
 
 ### 3. Refresh Flow (Phase 2)
 - `admin.refresh` enqueues jobs to re-embed containers when manifest/embedding version changes
@@ -125,6 +126,11 @@ Local Latent Containers is a local-first retrieval system that exposes a determi
 
 ### 4. Export Flow (Phase 2)
 - `containers.export` triggers creation of tarball manifest (metadata + vectors + blobs) stored in MinIO and optionally streamed to client
+
+### 5. Container Deletion Flow (Phase 2)
+- `containers.delete` archives or permanently deletes a container
+- Soft delete marks container `state=archived` and hides it from active lists
+- Hard delete removes Postgres metadata (containers, documents, chunks, jobs), drops Qdrant collections, and purges MinIO blobs (best-effort)
 
 ---
 

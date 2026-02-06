@@ -14,7 +14,7 @@ env:
   LLC_MINIO_ENDPOINT: http://localhost:9000
   LLC_MINIO_ACCESS_KEY: localminio
   LLC_MINIO_SECRET_KEY: localminio123
-  LLC_MCP_TOKEN_PATH: ${{ github.workspace }}/docker/mcp_token.txt
+  LLC_MCP_TOKEN: local-dev-token
   MCP_URL: http://localhost:7801
   PYTHONUNBUFFERED: "1"
   CI_E2E: ${{ vars.CI_E2E || '1' }}
@@ -26,8 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Export MCP token for tests and services
-        run: echo "LLC_MCP_TOKEN=$(cat docker/mcp_token.txt)" >> "$GITHUB_ENV"
+      - name: Enforce pinned images
+        run: |
+          ./scripts/check_no_latest_images.sh
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -78,6 +79,10 @@ jobs:
             sleep 2
           done
 
+      - name: Alembic autogenerate check
+        run: |
+          python scripts/check_alembic_autogenerate.py
+
       - name: Pytest (unit + integration + coverage)
         env:
           CI_INTEGRATION: "1"
@@ -105,7 +110,7 @@ jobs:
             echo "Skipping E2E (CI_E2E=0)";
             exit 0;
           fi
-          export NEXT_PUBLIC_MCP_TOKEN="${LLC_MCP_TOKEN:-$(cat docker/mcp_token.txt)}"
+          export NEXT_PUBLIC_MCP_TOKEN="${LLC_MCP_TOKEN}"
           cd frontend
           NEXT_TELEMETRY_DISABLED=1 npm run dev -- --hostname 0.0.0.0 --port 3000 >/tmp/next.log 2>&1 &
           FRONTEND_PID=$!

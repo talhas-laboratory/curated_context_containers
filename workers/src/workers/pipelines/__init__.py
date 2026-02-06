@@ -73,7 +73,7 @@ def _container_context(conn: psycopg.Connection, payload: dict) -> dict:
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT name, dims, embedder_version FROM containers WHERE id = %s LIMIT 1",
+                    "SELECT name, dims, embedder_version, graph_enabled FROM containers WHERE id = %s LIMIT 1",
                     (payload.get("container_id"),),
                 )
                 row = cur.fetchone()
@@ -85,10 +85,19 @@ def _container_context(conn: psycopg.Connection, payload: dict) -> dict:
                     if isinstance(row, dict)
                     else (row[2] if len(row) > 2 else embedder_version)
                 )
+                db_graph_enabled = (
+                    row.get("graph_enabled")
+                    if isinstance(row, dict)
+                    else (row[3] if len(row) > 3 else None)
+                )
                 if not manifest and container_name:
                     manifest = _load_manifest(container_name)
                 if not graph_cfg and manifest:
                     graph_cfg = manifest.get("graph") or {}
+                
+                # If manifest didn't provide graph config, respect DB setting if present
+                if not graph_cfg and db_graph_enabled is not None:
+                     graph_cfg = {"enabled": db_graph_enabled}
         except Exception:  # pragma: no cover - optional lookup
             pass
 
@@ -97,6 +106,13 @@ def _container_context(conn: psycopg.Connection, payload: dict) -> dict:
         settings.semantic_dedup_threshold,
     )
     image_cfg = manifest.get("image") or {}
+    
+    # Determine text graph enabled state
+    # Priority: Manifest > DB > Default
+    graph_is_enabled = GRAPH_ENABLED_DEFAULT
+    if graph_cfg and "enabled" in graph_cfg:
+        graph_is_enabled = graph_cfg["enabled"]
+    
     return {
         "manifest": manifest,
         "container_name": container_name,
@@ -105,7 +121,7 @@ def _container_context(conn: psycopg.Connection, payload: dict) -> dict:
         "embedder_version": embedder_version,
         "image_thumbnail_max_edge": image_cfg.get("thumbnail_max_edge", settings.image_thumbnail_max_edge),
         "image_compress_quality": image_cfg.get("compress_quality", settings.image_compress_quality),
-        "graph_enabled": (graph_cfg.get("enabled") if graph_cfg else GRAPH_ENABLED_DEFAULT),
+        "graph_enabled": graph_is_enabled,
         "graph_llm_enabled": bool(
             graph_cfg.get("llm_extractor") if graph_cfg else payload.get("graph_llm_enabled", settings.graph_llm_enabled)
         ),

@@ -78,9 +78,31 @@ class MinioAdapter:
         except Exception as exc:  # pragma: no cover - requires MinIO
             LOGGER.warning("minio_list_failed prefix=%s error=%s", prefix, exc)
 
+    async def delete_container(self, container_id: str) -> None:
+        """Delete all objects associated with a container (best-effort)."""
+        if not container_id:
+            return
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self._delete_container_sync, container_id)
+
+    def _delete_container_sync(self, container_id: str) -> None:
+        prefix = f"{container_id}/"
+        try:
+            objects = list(
+                self.client.list_objects(self.bucket, prefix=prefix, recursive=True)
+            )
+            for obj in objects:
+                try:
+                    self.client.remove_object(self.bucket, obj.object_name)
+                except Exception as exc:  # pragma: no cover - requires MinIO
+                    LOGGER.warning(
+                        "minio_remove_failed object=%s error=%s", obj.object_name, exc
+                    )
+        except Exception as exc:  # pragma: no cover - requires MinIO
+            LOGGER.warning("minio_list_failed prefix=%s error=%s", prefix, exc)
+
 
 minio_adapter = MinioAdapter()
-
 
 
 

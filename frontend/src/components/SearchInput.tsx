@@ -16,7 +16,7 @@ interface SearchInputProps {
 
 export function SearchInput({
   value,
-  placeholder = 'Search containers…',
+  placeholder = 'Search',
   diagnosticsEnabled = false,
   loading = false,
   inputRef,

@@ -53,6 +53,7 @@ class Container(BaseModel):
     """Container metadata."""
 
     id: str
+    parent_id: Optional[str] = None
     name: str
     theme: str
     description: Optional[str] = None
@@ -121,6 +122,16 @@ class Source(BaseModel):
     meta: Optional[dict[str, Any]] = None
 
 
+class ContainerLifecycleResponse(BaseModel):
+    """Response for container lifecycle operations."""
+
+    version: str = "v1"
+    request_id: str
+    success: bool
+    container_id: Optional[str] = None
+    message: Optional[str] = None
+    timings_ms: Optional[dict[str, Any]] = None
+    issues: Optional[list[str]] = None
 
 
 

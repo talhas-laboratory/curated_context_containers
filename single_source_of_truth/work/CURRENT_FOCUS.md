@@ -1,6 +1,6 @@
 # Current Focus — Real-Time Task Status
 
-**Last Updated:** 2026-01-18T15:09:24Z  
+**Last Updated:** 2026-02-01T12:15:00Z  
 **Agent:** Orchestrator
 
 ---
@@ -12,7 +12,7 @@
 **Current Task:** Home server deployment plan execution (production compose + reverse proxy + docs)  
 **Progress:** 35%  
 **Blockers:** None  
-**Latest:** Added drag-and-drop PDF uploads in the chat sandbox, plus proxy routing/UUID fallback fixes.  
+**Latest:** Added container archive/delete capability across backend, agent gateway/SDK, and frontend gallery.  
 **Next Action:** Verify upload flow end-to-end behind the home server proxy (drag/drop + button upload) and document the routing split.
 
 ---
@@ -22,7 +22,7 @@
 **Current Task:** Production compose topology (ports/secrets/CORS) and MCP server env alignment  
 **Progress:** 0%  
 **Blockers:** None  
-**Latest:** Deployment plan drafted; production compose wiring not started.  
+**Latest:** Implemented container delete cleanup (PG/Qdrant/MinIO) and updated API contracts.  
 **Next Action:** Define prod env vars, lock down CORS, and review reverse proxy routing needs.
 
 ---
@@ -32,7 +32,7 @@
 **Current Task:** Containerize frontend for production builds  
 **Progress:** 0%  
 **Blockers:** None  
-**Latest:** Deployment plan drafted; frontend Dockerfile and build pipeline pending.  
+**Latest:** Added container hierarchy UI (parent selector + nested subcontainer cards) and backend support for parent_id + descendant search.  
 **Next Action:** Add Dockerfile and verify MCP base URL/token handling in prod builds.
 
 ---

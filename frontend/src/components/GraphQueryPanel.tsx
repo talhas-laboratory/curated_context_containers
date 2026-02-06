@@ -33,7 +33,7 @@ export function GraphQueryPanel({
       {rawCypherEnabled ? (
         <div className="space-y-2">
           <label className="text-[11px] uppercase tracking-[0.08em] text-ink-2" htmlFor="raw-cypher">
-            Raw Cypher (developer)
+            Raw Cypher
           </label>
           <textarea
             id="raw-cypher"
@@ -52,9 +52,6 @@ export function GraphQueryPanel({
             placeholder="MATCH (n)-[r]->(m) RETURN n,r,m LIMIT 20"
             aria-label="Raw Cypher input"
           />
-          <p className="text-xs text-ink-2">
-            Runs Cypher as-is against the container graph. Submit with ⌘/Ctrl+Enter. Esc collapses the textarea.
-          </p>
         </div>
       ) : null}
     </div>

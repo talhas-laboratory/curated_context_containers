@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/msw/server';
 import { createTestQueryClient } from '../../tests/utils';
-import { useCreateContainer, useDescribeContainer, useListContainers } from './use-containers';
+import { useCreateContainer, useDeleteContainer, useDescribeContainer, useListContainers } from './use-containers';
 
 function createWrapper() {
   const queryClient = createTestQueryClient();
@@ -18,8 +18,10 @@ describe('useListContainers', () => {
     const { result } = renderHook(() => useListContainers('active'), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.containers).toHaveLength(1);
-    expect(result.current.data?.containers[0].name).toBe('Expressionist Art');
+    const containers = result.current.data?.containers || [];
+    expect(containers.length).toBeGreaterThan(0);
+    const primary = containers.find((container) => container.id === 'container-1');
+    expect(primary?.name).toBe('Expressionist Art');
   });
 
   it('handles empty state', async () => {
@@ -93,5 +95,57 @@ describe('useCreateContainer', () => {
         })
       ).rejects.toMatchObject({ message: expect.stringMatching(/name required/i) });
     });
+  });
+
+  it('surfaces detail messages from the API', async () => {
+    server.use(
+      http.post('*/v1/containers/create', () =>
+        new HttpResponse(JSON.stringify({ detail: "Container with name 'test' already exists" }), { status: 400 })
+      )
+    );
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useCreateContainer(), { wrapper });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          name: 'test',
+          theme: 'duplicate',
+        })
+      ).rejects.toMatchObject({ message: expect.stringMatching(/already exists/i) });
+    });
+  });
+});
+
+describe('useDeleteContainer', () => {
+  it('archives a container by default', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useDeleteContainer(), { wrapper });
+
+    let response: any;
+    await act(async () => {
+      response = await result.current.mutateAsync({
+        container: 'container-1',
+      });
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.container_id).toBe('container-1');
+  });
+
+  it('deletes a container permanently when requested', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useDeleteContainer(), { wrapper });
+
+    let response: any;
+    await act(async () => {
+      response = await result.current.mutateAsync({
+        container: 'container-1',
+        permanent: true,
+      });
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.message).toMatch(/deleted/i);
   });
 });

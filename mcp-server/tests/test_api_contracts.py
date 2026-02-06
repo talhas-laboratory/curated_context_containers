@@ -37,10 +37,12 @@ from app.models.documents import (
 )
 from app.models.search import SearchRequest, SearchResponse, SearchResult
 from app.models.admin import RefreshRequest, RefreshResponse, ExportRequest, ExportResponse
+from app.models.agent import DeleteContainerRequest, ContainerLifecycleResponse
 from app.services import containers as container_service
 from app.services import jobs as job_service
 from app.services import search as search_service
 from app.services import admin as admin_service
+from app.services import lifecycle as lifecycle_service
 from app.models.graph import GraphSearchRequest, GraphUpsertRequest, GraphNode, GraphEdge
 from app.core.security import verify_bearer_token
 
@@ -149,6 +151,9 @@ def override_dependencies(monkeypatch):
             issues=issues,
         )
 
+    async def fake_delete_container(session, request, agent_id=None):
+        return True
+
     # Override authentication to bypass token verification
     def fake_auth():
         return True
@@ -159,6 +164,7 @@ def override_dependencies(monkeypatch):
     monkeypatch.setattr(container_service, "describe_container_response", fake_describe_response)
     monkeypatch.setattr(job_service, "enqueue_jobs", fake_enqueue_jobs)
     monkeypatch.setattr(search_service, "search_response", fake_search_response)
+    monkeypatch.setattr(lifecycle_service, "delete_container", fake_delete_container)
     yield
     app.dependency_overrides.clear()
 
@@ -173,6 +179,9 @@ class TestListContainersContract:
         assert req.state == "active"
         assert req.limit == 25
         assert req.offset == 0
+
+        req_with_parent = ListContainersRequest(parent_id="parent-1")
+        assert req_with_parent.parent_id == "parent-1"
 
         # Default values
         req_default = ListContainersRequest()
@@ -710,3 +719,34 @@ class TestTimingsContract:
                 if key in diagnostics:
                     assert isinstance(diagnostics[key], int)
                     assert diagnostics[key] >= 0
+
+
+class TestDeleteContainerContract:
+    """Contract tests for containers.delete endpoint."""
+
+    def test_delete_container_request_schema(self):
+        """Validate DeleteContainerRequest schema."""
+        req = DeleteContainerRequest(container=SAMPLE_CONTAINER_ID, permanent=False)
+        assert req.container == SAMPLE_CONTAINER_ID
+        assert req.permanent is False
+
+    def test_delete_container_response_schema(self):
+        """Validate ContainerLifecycleResponse schema."""
+        response = ContainerLifecycleResponse(
+            request_id="req-del",
+            success=True,
+            container_id=SAMPLE_CONTAINER_ID,
+            message="Container archived successfully",
+        )
+        assert response.version == "v1"
+        assert response.success is True
+        assert response.container_id == SAMPLE_CONTAINER_ID
+
+    def test_delete_container_endpoint_format(self):
+        """Test endpoint response format."""
+        response = client.delete(f"/v1/containers/{SAMPLE_CONTAINER_ID}", headers=AUTH_HEADERS)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["version"] == "v1"
+        assert data["success"] is True
+        assert data["container_id"] == SAMPLE_CONTAINER_ID

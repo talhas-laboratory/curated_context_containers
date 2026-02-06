@@ -1,8 +1,8 @@
 # Component Library — Contracts & Specifications
 
 **Owner:** IKB Designer (minimalist environment designer)  
-**Last Updated:** ⚪ Not Started  
-**Status:** 📝 Template — Awaiting Initial Definition
+**Last Updated:** 2026-02-01  
+**Status:** 🟡 In Progress — Core cards/actions documented
 
 ---
 
@@ -99,7 +99,7 @@ interface SearchInputProps {
 
 **Purpose:** Container representation in gallery view
 
-**Anatomy:** Card shell (white background, 1px border), header (container name + modality chips), stats row (document count, chunk count, last ingest), action footer (View/Add buttons)
+**Anatomy:** Card shell (white background, 1px border), header (container name + modality chips), theme blurb, optional parent label (uppercase), container ID line (monospace, break-all), stats row (document count, chunk count, last ingest), action footer (View/Add buttons)
 
 **Props:**
 ```typescript
@@ -109,6 +109,7 @@ interface ContainerCardProps {
     name: string;
     theme: string;
     modalities: string[];
+    state?: 'active' | 'paused' | 'archived';
     stats: {
       document_count: number;
       chunk_count: number;
@@ -117,6 +118,8 @@ interface ContainerCardProps {
   };
   onSelect: (id: string) => void;
   onAddContent: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 ```
 
@@ -135,6 +138,7 @@ interface ContainerCardProps {
 - role="article"
 - aria-label includes container name and stats
 - Full keyboard support (Enter to select, Space to activate buttons)
+- Archive/Delete action is focusable with visible ring; confirm modal traps focus
 
 **Motion:**
 - Hover lift: 120ms ease-out

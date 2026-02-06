@@ -16,6 +16,7 @@ class ContainerStats(BaseModel):
 
 class ContainerSummary(BaseModel):
     id: str
+    parent_id: Optional[str] = None
     name: str
     theme: Optional[str] = None
     modalities: List[str] = Field(default_factory=list)
@@ -59,6 +60,7 @@ class ListContainersRequest(BaseModel):
     state: Optional[str] = Field(default="active")
     limit: int = Field(default=25, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
+    parent_id: Optional[str] = None
 
 
 class DescribeContainerRequest(BaseModel):

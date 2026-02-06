@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 import { GlassShell } from '../../../../components/glass/GlassShell';
@@ -23,7 +24,7 @@ import { useSearch } from '../../../../lib/hooks/use-search';
 import { useRefresh, useExport } from '../../../../lib/hooks/use-admin';
 import { useGraphSearch, type GraphSearchParams } from '../../../../lib/hooks/use-graph';
 import { useJobStatus } from '../../../../lib/hooks/use-job-status';
-import type { SearchResult } from '../../../../lib/types';
+import type { ContainerSummary, SearchResult } from '../../../../lib/types';
 import { useKeyboardShortcuts } from '../../../../lib/keyboard';
 
 const MODES: Array<{ label: string; value: 'semantic' | 'hybrid' | 'bm25' | 'crossmodal' | 'graph' | 'hybrid_graph' }> = [
@@ -90,6 +91,25 @@ export default function ContainerSearchPage() {
     error: graphSearchError,
   } = useGraphSearch(graphSearchParams);
   const availableContainers = allContainers?.containers || [];
+  const containerById = new Map(availableContainers.map((container) => [container.id, container]));
+  const childrenByParent = availableContainers.reduce<Record<string, ContainerSummary[]>>((acc, container) => {
+    if (container.parent_id) {
+      const key = container.parent_id;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(container);
+    }
+    return acc;
+  }, {});
+  const resolvedContainerId = containerDetail?.container.id || (containerId ? normalizeContainerId(containerId) : '');
+  const parentContainerId = resolvedContainerId ? containerById.get(resolvedContainerId)?.parent_id : null;
+  const parentContainer = parentContainerId ? containerById.get(parentContainerId) : null;
+  const childContainers = resolvedContainerId ? childrenByParent[resolvedContainerId] || [] : [];
+  const sortedChildren = childContainers.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const selectedChildCount = sortedChildren.filter((child) => selectedContainers.includes(child.id)).length;
+
+  const toggleContainerScope = (id: string) => {
+    setSelectedContainers((prev) => (prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]));
+  };
 
   const { data: jobStatusData, isLoading: jobStatusLoading } = useJobStatus(
     adminJobs.map((job) => job.id),
@@ -322,7 +342,6 @@ export default function ContainerSearchPage() {
     hasData &&
     results.length === 0 &&
     !((graphContext?.nodes && graphContext.nodes.length) || (graphContext?.edges && graphContext.edges.length));
-  const showInitialState = !isLoading && !hasData && !activeSearchError;
   const stats = containerDetail?.container.stats;
 
   const sidebarContent = (
@@ -353,16 +372,83 @@ export default function ContainerSearchPage() {
         </div>
       </GlassCard>
 
+      <GlassCard className="space-y-4" data-testid="subcontainers-panel">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-serif text-ink-1">Subcontainers</h3>
+          </div>
+          <span className="rounded-full border border-line-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-ink-2">
+            {sortedChildren.length} total · {selectedChildCount} in scope
+          </span>
+        </div>
+
+        {parentContainer && (
+          <div className="flex items-center justify-between rounded-lg border border-line-2 bg-white/70 px-3 py-2 text-xs text-ink-2">
+            <span>Parent container</span>
+            <Link
+              href={`/containers/${parentContainer.id}/search`}
+              className="rounded-full border border-line-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-ink-1 transition hover:border-ink-1"
+            >
+              {parentContainer.name}
+            </Link>
+          </div>
+        )}
+
+        {loadingContainers && <p className="text-xs text-ink-2">Loading…</p>}
+        {!loadingContainers && sortedChildren.length === 0 && (
+          <p className="text-xs text-ink-2">No subcontainers.</p>
+        )}
+
+        {sortedChildren.length > 0 && (
+          <div className="space-y-2">
+            {sortedChildren.map((child) => {
+              const inScope = selectedContainers.includes(child.id);
+              return (
+                <div
+                  key={child.id}
+                  data-testid={`subcontainer-item-${child.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-line-2 bg-white/70 px-3 py-2"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm text-ink-1">{child.name}</p>
+                    <p className="text-xs text-ink-2">{child.theme || '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleContainerScope(child.id)}
+                      aria-pressed={inScope}
+                      aria-label={`${inScope ? 'Remove' : 'Add'} ${child.name} ${inScope ? 'from' : 'to'} search scope`}
+                      className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.08em] transition ${
+                        inScope
+                          ? 'border-ink-1 bg-white text-ink-1'
+                          : 'border-line-2 text-ink-2 hover:border-ink-1 hover:text-ink-1'
+                      }`}
+                    >
+                      {inScope ? 'In scope' : 'Add to scope'}
+                    </button>
+                    <Link
+                      href={`/containers/${child.id}/search`}
+                      className="rounded-full border border-line-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-ink-2 transition hover:border-ink-1 hover:text-ink-1"
+                      aria-label={`Open ${child.name}`}
+                    >
+                      Open
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
+
       <ContainerDocumentsPanel containerId={containerId} />
 
       <GlassCard className="space-y-4" data-testid="admin-actions">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.08em] text-ink-2">Maintenance</p>
-            <h3 className="text-lg font-serif text-ink-1">Refresh &amp; Export</h3>
-            <p className="text-sm text-ink-2">Keep embeddings current or take a snapshot.</p>
+            <h3 className="text-lg font-serif text-ink-1">Maintenance</h3>
           </div>
-          <span className="rounded-full border border-line-2 px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-ink-2">Phase 2</span>
         </div>
 
         <div className="grid gap-2">
@@ -430,7 +516,7 @@ export default function ContainerSearchPage() {
         )}
 
         {adminJobs.length === 0 && !loadingContainers && (
-          <p className="text-xs text-ink-2">No maintenance jobs yet.</p>
+          <p className="text-xs text-ink-2">No jobs.</p>
         )}
       </GlassCard>
 
@@ -448,8 +534,7 @@ export default function ContainerSearchPage() {
   return (
     <GlassShell
       sidebar={sidebarContent}
-      headline="Search Workspace"
-      description="Ask within a single container."
+      headline="Search"
     >
       <div className="space-y-8 pb-24">
         {/* Search Input Area */}
@@ -467,8 +552,8 @@ export default function ContainerSearchPage() {
                }}
                placeholder={
                  mode === 'crossmodal'
-                   ? 'Paste optional description for your image query…'
-                   : `Search ${containerDetail?.container.name ?? 'container'}…`
+                   ? 'Image description (optional)'
+                   : `Search ${containerDetail?.container.name ?? 'container'}`
                }
                className="w-full text-lg"
                data-testid="search-input"
@@ -611,20 +696,13 @@ export default function ContainerSearchPage() {
                 {isLoading && (
                   <div className="text-center py-12 text-ink-2">
                      <div className="w-8 h-8 border-2 border-ink-2/30 border-t-ink-2 rounded-full animate-spin mx-auto mb-3"/>
-                     <p className="animate-pulse">Retrieving chunks...</p>
-                  </div>
-                )}
-                
-                {showInitialState && (
-                  <div className="text-center py-20 text-ink-2/50 font-serif italic text-xl">
-                    "The latent space awaits your query."
+                     <p className="animate-pulse">Loading…</p>
                   </div>
                 )}
 
                 {showEmptyState && (
                   <div className="text-center py-12 bg-white/30 rounded-2xl border border-white/40" data-testid="search-status">
                     <p className="text-ink-1 font-medium">No hits</p>
-                    <p className="text-ink-2 text-sm mt-1">Try adjusting your query or increasing k.</p>
                   </div>
                 )}
 
@@ -670,7 +748,6 @@ export default function ContainerSearchPage() {
       <AdminActionModal
         open={refreshModalOpen}
         title="Refresh embeddings"
-        description="Re-embed this container with the current or new embedder version."
         onClose={() => setRefreshModalOpen(false)}
         onSubmit={handleRefreshSubmit}
         submitLabel={refreshMutation.isPending ? 'Running…' : 'Trigger refresh'}
@@ -698,8 +775,8 @@ export default function ContainerSearchPage() {
         <div className="grid grid-cols-2 gap-2" role="group" aria-label="Refresh strategy">
           {(
             [
-              { value: 'in_place', label: 'In-place', hint: 'Re-embed and keep collection id' },
-              { value: 'shadow', label: 'Shadow', hint: 'Build parallel copy, then swap' },
+              { value: 'in_place', label: 'In-place', hint: 'Reuse id' },
+              { value: 'shadow', label: 'Shadow', hint: 'Swap on complete' },
             ] as const
           ).map((option) => (
             <label
@@ -732,10 +809,9 @@ export default function ContainerSearchPage() {
             type="text"
             value={embedderVersion}
             onChange={(e) => setEmbedderVersion(e.target.value)}
-            placeholder="e.g., 1.1.0"
+            placeholder="1.1.0"
             className="w-full rounded-lg border border-line-2 bg-white px-3 py-2 text-sm text-ink-1 focus:border-ink-1 focus:outline-none focus:ring-1 focus:ring-ink-1/30"
           />
-          <p className="text-xs text-ink-2">Leave blank to reuse the current embedder version.</p>
         </label>
         <label className="flex items-center gap-2 text-sm text-ink-1">
           <input
@@ -744,17 +820,13 @@ export default function ContainerSearchPage() {
             onChange={(e) => setUseLlmExtractor(e.target.checked)}
             className="h-4 w-4 rounded border-ink-2/40 text-ink-1 focus:ring-ink-1/30"
           />
-          Use LLM-assisted graph extraction (OpenRouter)
+          LLM graph extraction
         </label>
-        <p className="text-xs text-ink-2 -mt-1">
-          Applies during refresh ingest; falls back to heuristics if unavailable.
-        </p>
       </AdminActionModal>
 
       <AdminActionModal
         open={exportModalOpen}
         title="Export container"
-        description="Create a tar or zip snapshot with metadata, vectors, and blobs."
         onClose={() => setExportModalOpen(false)}
         onSubmit={handleExportSubmit}
         submitLabel={exportMutation.isPending ? 'Enqueuing…' : 'Start export'}
@@ -781,8 +853,8 @@ export default function ContainerSearchPage() {
         <div className="flex gap-2" role="group" aria-label="Export format">
           {(
             [
-              { value: 'tar', label: 'TAR', hint: 'Preferred for speed' },
-              { value: 'zip', label: 'ZIP', hint: 'Compatible archives' },
+              { value: 'tar', label: 'TAR', hint: 'Fast' },
+              { value: 'zip', label: 'ZIP', hint: 'Compatible' },
             ] as const
           ).map((option) => (
             <label
@@ -828,7 +900,6 @@ export default function ContainerSearchPage() {
             />
             Include blobs
           </label>
-          <p className="text-xs text-ink-2">Exports run as background jobs; progress shows in the maintenance panel.</p>
         </div>
       </AdminActionModal>
     </GlassShell>

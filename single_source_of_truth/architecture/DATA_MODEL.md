@@ -1,8 +1,8 @@
 # Data Model — Schemas & Contracts
 
 **Owner:** Silent Architect  
-**Last Updated:** 2025-12-01T17:30:00Z  
-**Status:** 🟡 In Progress — Phase 2 modalities + refresh/export captured, migrations pending
+**Last Updated:** 2026-02-01T12:15:00Z  
+**Status:** 🟡 In Progress — Phase 2 modalities + container hierarchy captured, migrations pending
 
 ---
 
@@ -32,6 +32,7 @@ Container registry + manifest cache.
 ```sql
 CREATE TABLE containers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_id UUID REFERENCES containers(id) ON DELETE CASCADE,
     name TEXT NOT NULL UNIQUE CHECK (name ~ '^[a-z0-9_-]+$'),
     theme TEXT NOT NULL,
     description TEXT,
@@ -51,6 +52,7 @@ CREATE TABLE containers (
 );
 CREATE INDEX idx_containers_state ON containers(state);
 CREATE INDEX idx_containers_theme ON containers(theme);
+CREATE INDEX idx_containers_parent ON containers(parent_id);
 ```
 
 **Graph fields:** `graph_enabled` flags containers that participate in graph RAG; `graph_url` allows overriding the default Neo4j bolt URI; `graph_schema` can cache introspected labels/relationships for diagnostics/UI.

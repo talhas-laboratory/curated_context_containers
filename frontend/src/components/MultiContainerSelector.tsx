@@ -100,7 +100,7 @@ export function MultiContainerSelector({
               type="text"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter by name or theme"
+              placeholder="Filter"
               className="w-full rounded-lg border border-line-2 px-3 py-2 text-sm text-ink-1 focus:border-ink-1 focus:outline-none focus:ring-1 focus:ring-line-1"
             />
           </div>
@@ -126,14 +126,11 @@ export function MultiContainerSelector({
             >
               Clear
             </button>
-            <span className="ml-auto">
-              {selectedIds.length} selected / {containers.length} total
-            </span>
           </div>
 
           <div className="max-h-80 overflow-y-auto space-y-1" data-testid="container-options">
             {filtered.length === 0 && (
-              <p className="text-sm text-ink-2">No containers match.</p>
+              <p className="text-sm text-ink-2">No matches.</p>
             )}
             {filtered.map((container) => {
               const checked = selectedIds.includes(container.id);

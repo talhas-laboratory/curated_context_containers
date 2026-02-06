@@ -5,11 +5,23 @@ const containers = [
     id: 'container-1',
     name: 'Expressionist Art',
     theme: 'art',
-    modalities: ['text'],
+    modalities: ['text', 'pdf'],
     state: 'active',
     stats: {
       document_count: 3,
       chunk_count: 9,
+    },
+  },
+  {
+    id: 'container-2',
+    parent_id: 'container-1',
+    name: 'Expressionist Sketches',
+    theme: 'sketches',
+    modalities: ['text'],
+    state: 'active',
+    stats: {
+      document_count: 1,
+      chunk_count: 2,
     },
   },
 ];
@@ -68,6 +80,19 @@ export const handlers = [
       success: true,
       container_id: body.name,
       message: `Container '${body.name}' created successfully`,
+    });
+  }),
+
+  http.delete('*/v1/containers/:id', async ({ params, request }) => {
+    const id = params.id as string;
+    const url = new URL(request.url);
+    const permanent = url.searchParams.get('permanent') === 'true';
+    return HttpResponse.json({
+      version: 'v1',
+      request_id: 'req-delete',
+      success: true,
+      container_id: id,
+      message: permanent ? 'Container deleted permanently' : 'Container archived successfully',
     });
   }),
 
@@ -261,6 +286,22 @@ export const handlers = [
       status: 'queued',
       timings_ms: { db_query: 4 },
       issues: [],
+    });
+  }),
+
+  http.post('*/v1/containers/add', async () => {
+    return HttpResponse.json({
+      jobs: [{ job_id: 'job-add-1', status: 'queued' }],
+      request_id: 'req-add',
+      issues: [],
+    });
+  }),
+
+  http.post('*/sandbox/upload', async () => {
+    return HttpResponse.json({
+      uri: 'https://example.com/sandbox/test.pdf',
+      filename: 'test.pdf',
+      key: 'test-key',
     });
   }),
 
