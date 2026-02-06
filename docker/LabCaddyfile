@@ -1,0 +1,26 @@
+:80 {
+  encode zstd gzip
+
+  # Frontend expects MCP at /api.
+  # When accessing via :3001, inject the server-side token so the browser
+  # doesn't need to know it.
+  handle_path /api/* {
+    reverse_proxy mcp:7801 {
+      header_up Authorization "Bearer {env.LLC_MCP_TOKEN}"
+    }
+  }
+
+  redir /storage /storage/
+  handle_path /storage/* {
+    reverse_proxy minio:9000
+  }
+
+  handle_path /minio* {
+    reverse_proxy minio:9001
+  }
+
+  handle {
+    reverse_proxy frontend:3000
+  }
+}
+

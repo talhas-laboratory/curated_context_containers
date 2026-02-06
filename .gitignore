@@ -13,6 +13,12 @@ docker/.env.*
 !docker/.env.dev.template
 !docker/.env.prod.template
 !docker/.env.home.example
+docker/compose.home.override.yaml
+docker/Caddyfile.home
+docker/Caddyfile.override
+docker/*.bak*
+docker/*.backup*
+docker/qdrant-config.yaml
 
 .DS_Store
 __pycache__/
