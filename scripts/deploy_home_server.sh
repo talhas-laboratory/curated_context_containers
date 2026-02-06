@@ -69,8 +69,19 @@ if [ -n "$COMPOSE_OVERRIDE_FILE" ]; then
 fi
 
 echo "Preparing /srv/llc volumes..."
-sudo mkdir -p /srv/llc/{postgres,qdrant,minio,neo4j/data,neo4j/logs,caddy,manifests}
-sudo chown -R "$USER":"$USER" /srv/llc
+if [ "$(id -u)" -eq 0 ]; then
+  mkdir -p /srv/llc/{postgres,qdrant,minio,neo4j/data,neo4j/logs,caddy,manifests}
+  chown -R "$USER":"$USER" /srv/llc || true
+elif [ -w /srv ] || [ -w /srv/llc ]; then
+  mkdir -p /srv/llc/{postgres,qdrant,minio,neo4j/data,neo4j/logs,caddy,manifests}
+  chown -R "$USER":"$USER" /srv/llc || true
+elif sudo -n true 2>/dev/null; then
+  sudo mkdir -p /srv/llc/{postgres,qdrant,minio,neo4j/data,neo4j/logs,caddy,manifests}
+  sudo chown -R "$USER":"$USER" /srv/llc
+else
+  echo "Warning: no permission to create /srv/llc and sudo requires a password."
+  echo "Ensure /srv/llc exists and is writable, then re-run."
+fi
 
 echo "Syncing manifests..."
 if command -v rsync >/dev/null 2>&1; then
