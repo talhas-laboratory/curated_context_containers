@@ -14,6 +14,12 @@ if config.config_file_name is not None:
 
 # Allow overriding DSN via env
 if dsn := os.getenv("LLC_POSTGRES_DSN"):
+    # Alembic uses a synchronous SQLAlchemy engine. The default `postgresql://`
+    # driver expects `psycopg2`, but our images ship psycopg3 (`psycopg[binary]`).
+    if dsn.startswith("postgresql+asyncpg://"):
+        dsn = dsn.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    elif dsn.startswith("postgresql://"):
+        dsn = dsn.replace("postgresql://", "postgresql+psycopg://", 1)
     config.set_main_option("sqlalchemy.url", dsn)
 
 
