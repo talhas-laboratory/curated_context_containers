@@ -40,7 +40,9 @@ export default function ChatSandboxPage() {
 
   useEffect(() => {
     if (containerData?.containers.length && !activeContainerId) {
-      setActiveContainerId(containerData.containers[0].id);
+      // Prefer a PDF-capable container since this page only uploads PDFs.
+      const pdfCapable = containerData.containers.find((c) => c.modalities?.includes('pdf'));
+      setActiveContainerId(pdfCapable?.id || containerData.containers[0].id);
     }
   }, [containerData, activeContainerId]);
 
@@ -178,6 +180,9 @@ export default function ChatSandboxPage() {
       return;
     }
 
+    const selectedContainer = containerData?.containers.find((c) => c.id === activeContainerId);
+    const supportsPdf = !!selectedContainer && selectedContainer.modalities?.includes('pdf');
+
     const containerId = activeContainerId;
     const pdfFiles = files.filter(isPdfFile);
     const rejectedFiles = files.filter((file) => !isPdfFile(file));
@@ -196,6 +201,20 @@ export default function ChatSandboxPage() {
     }
 
     if (!pdfFiles.length) return;
+
+    if (!supportsPdf) {
+      const modalities = selectedContainer?.modalities?.length ? selectedContainer.modalities.join(', ') : 'unknown';
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: createId(),
+          role: 'system',
+          content: `Upload failed: this container doesn't accept PDFs (modalities: ${modalities}). Select a PDF-enabled container.`,
+          timestamp: Date.now(),
+        },
+      ]);
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -239,7 +258,9 @@ export default function ChatSandboxPage() {
   const handleDragOver = (event: React.DragEvent) => {
     if (!isFileDrag(event)) return;
     event.preventDefault();
-    event.dataTransfer.dropEffect = activeContainerId ? 'copy' : 'none';
+    const selectedContainer = containerData?.containers.find((c) => c.id === activeContainerId);
+    const supportsPdf = !!selectedContainer && selectedContainer.modalities?.includes('pdf');
+    event.dataTransfer.dropEffect = supportsPdf ? 'copy' : 'none';
   };
 
   const handleDrop = (event: React.DragEvent) => {
@@ -254,6 +275,7 @@ export default function ChatSandboxPage() {
   };
 
   const activeContainer = containerData?.containers.find((c) => c.id === activeContainerId);
+  const activeContainerSupportsPdf = !!activeContainer && activeContainer.modalities?.includes('pdf');
 
   const sidebarContent = (
     <div className="space-y-8">
@@ -328,7 +350,11 @@ export default function ChatSandboxPage() {
           <div className="absolute inset-0 z-30 flex items-center justify-center rounded-3xl bg-white/60 backdrop-blur-sm border border-white/70 pointer-events-none">
             <div className="text-center">
               <p className="text-sm font-medium uppercase tracking-widest text-ink-2/70">
-                {activeContainerId ? 'Drop PDFs to upload' : 'Select a container to upload'}
+                {!activeContainerId
+                  ? 'Select a container to upload'
+                  : activeContainerSupportsPdf
+                    ? 'Drop PDFs to upload'
+                    : "This container doesn't accept PDFs"}
               </p>
               <p className="text-xs text-ink-2/60 mt-2">PDF only for now.</p>
             </div>
@@ -439,7 +465,7 @@ export default function ChatSandboxPage() {
              <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || !activeContainerId}
+                disabled={isUploading || !activeContainerId || !activeContainerSupportsPdf}
                 className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 hover:bg-white text-ink-2 hover:text-ink-1 transition-all disabled:opacity-40 group relative"
                 title="Upload PDF"
               >
