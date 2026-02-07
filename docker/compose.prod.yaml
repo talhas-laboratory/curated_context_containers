@@ -82,9 +82,10 @@ services:
       minio:
         condition: service_started
       neo4j:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7801/ready')\"" ]
+      # /ready is a strict dependency readiness check; use /health so MCP can run in degraded mode.
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:7801/health')\"" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -125,7 +126,7 @@ services:
       minio:
         condition: service_started
       neo4j:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import os; os.kill(1, 0)\"" ]
       interval: 30s
