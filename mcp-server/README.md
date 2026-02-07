@@ -18,16 +18,20 @@ Implementation will grow vertically (services, adapters, models) as contracts fr
 
 ## Database migrations
 
-Alembic is configured under `alembic/` with an initial revision that executes the canonical SQL schema from `../migrations/001_initial_schema.sql`. Run migrations with:
+Alembic is configured under `alembic/`. Postgres migrations are **required** (the API will refuse to start if they fail).
+
+By default the server attempts to run migrations on startup (`LLC_AUTO_MIGRATE=true`). You can disable this in some environments with `LLC_AUTO_MIGRATE=false` and run Alembic manually.
+
+Run migrations with:
 
 ```bash
 cd mcp-server
 LLC_POSTGRES_DSN=postgresql://local:localpw@localhost:5432/registry alembic upgrade head
 ```
 
-The raw SQL migration remains the source of truth and is reused by Alembic to avoid duplication while we build out SQLAlchemy models.
-
-Graph fields (Neo4j enablement) are added in `migrations/002_graph_fields.sql` and Alembic revision `20251205_001_graph_fields.py`. Apply both migrations in order before running graph modes.
+Startup visibility:
+- `GET /ready` returns 503 when any dependency is down and includes a `migrations` report.
+- `GET /v1/system/status` always returns 200 and is intended for UI/agents to display degraded-service state.
 
 ## Graph configuration
 

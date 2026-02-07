@@ -14,6 +14,7 @@ from llc_agents.models import (
     Job,
     Source,
     ContainerLifecycleResponse,
+    SystemStatusResponse,
 )
 
 
@@ -115,6 +116,15 @@ class ContainerClient:
         container_data = data.get("container", {})
 
         return Container(**container_data)
+
+    async def system_status(self) -> SystemStatusResponse:
+        """Get current system status and dependency health.
+
+        This endpoint is designed to be "best effort": it returns 200 even when
+        some services are down (but `status` will be `"degraded"`).
+        """
+        response = await self.session.get("/v1/system/status")
+        return SystemStatusResponse(**response.json())
 
     async def search(
         self,
@@ -428,20 +438,3 @@ class SearchBuilder:
             diagnostics=self._diagnostics,
             filters=self._filters if self._filters else None,
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

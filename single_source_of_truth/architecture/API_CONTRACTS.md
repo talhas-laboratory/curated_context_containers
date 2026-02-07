@@ -1,7 +1,7 @@
 # API Contracts — MCP v1 Endpoints
 
 **Owner:** Silent Architect  
-**Last Updated:** 2026-02-01T12:15:00Z  
+**Last Updated:** 2026-02-07T16:08:09Z  
 **Status:** 🟡 In Progress — Phase 2 image/crossmodal/rerank/refresh/export documented
 
 ---
@@ -50,7 +50,7 @@ All responses share the envelope:
 | `/v1/containers/list` | POST | List containers with pagination/filtering | `containers.list` |
 | `/v1/containers/describe` | POST | Retrieve detailed metadata for one container | `containers.describe` |
 | `/v1/containers/add` | POST | Submit ingestion jobs for one or more sources | `containers.add` |
-| `/v1/containers/search` | POST | Execute semantic/hybrid/graph search | `containers.search` |
+| `/v1/search` | POST | Execute semantic/hybrid/crossmodal/graph search | `containers.search` |
 | `/v1/containers/graph_upsert` | POST | Upsert graph nodes/edges for a container | `containers.graph_upsert` |
 | `/v1/containers/graph_search` | POST | Graph/NL→Cypher search over container graph | `containers.graph_search` |
 | `/v1/containers/graph_schema` | GET | Retrieve graph labels/relationship schema | `containers.graph_schema` |
@@ -58,6 +58,8 @@ All responses share the envelope:
 | `/v1/documents/list` | POST | List embedded documents for a container | `documents.list` |
 | `/v1/documents/delete` | POST | Remove document + chunks from a container | `documents.delete` |
 | `/health` | GET | Liveness/readiness checks | — |
+| `/ready` | GET | Readiness (503 when any dependency is down) + `migrations` report | — |
+| `/v1/system/status` | GET | Status (200 always): dependency checks + errors + `migrations` report (for UI/agents) | — |
 | `/metrics` | GET | Prometheus scrape | — |
 
 ### Agent Access Endpoints (NEW)
@@ -241,7 +243,7 @@ If slug provided, server resolves to canonical ID.
 
 ## 4. `containers.search`
 
-**Route:** `POST /v1/containers/search`  
+**Route:** `POST /v1/search`  
 **Purpose:** Execute semantic or hybrid retrieval over one or more containers.
 
 **Request Schema:**

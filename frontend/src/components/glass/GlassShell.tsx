@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
+import { SystemStatusBanner } from '../SystemStatusBanner';
+
 interface GlassShellProps {
   sidebar?: ReactNode;
   children: ReactNode;
@@ -72,6 +74,7 @@ export function GlassShell({ sidebar, children, headline, description }: GlassSh
           )}
           
           <div className="flex-1 min-w-0">
+            <SystemStatusBanner />
             {(headline || description) && (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}

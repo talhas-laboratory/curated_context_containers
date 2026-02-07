@@ -128,6 +128,14 @@ graph = await client.graph_search(
 )
 print(graph.get("nodes", []))
 
+# System status (recommended)
+status = await client.system_status()
+if not status.required_ok:
+    raise RuntimeError("Required services are down (check Postgres + migrations).")
+if status.status != "ok":
+    print("System degraded:", status.issues)
+    print("Service errors:", status.errors)
+
 # Add sources
 jobs = await client.add_sources(
     container="expressionist-art",
@@ -333,7 +341,6 @@ pytest
 ## License
 
 MIT
-
 
 
 

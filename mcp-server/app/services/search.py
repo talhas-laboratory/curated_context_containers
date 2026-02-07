@@ -4,7 +4,6 @@ from __future__ import annotations
 import base64
 import logging
 import math
-import inspect
 from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 from uuid import UUID, uuid4
@@ -499,94 +498,77 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     rerank_top_k_out = int(rerank_cfg.get("top_k_out") or settings.rerank_top_k_out or request.k)
     rerank_timeout_ms = int(rerank_cfg.get("timeout_ms") or settings.rerank_timeout_ms)
 
-    bm25_results: List[SearchResult] = []
-    bm25_ranking: List[str] = []
     timers = []
-    vector_results: List[SearchResult] = []
-    vector_ranking: List[str] = []
     issues: List[str] = []
 
-    # Collect results over expanded queries; include original query as-is.
-    aggregate_results: Dict[str, SearchResult] = {}
     original_query = request.query or ""
-    precomputed_image_vector: List[float] | None = None
-    vector_stage_fn = _vector_stage
-    vector_supports_query = "query_vector" in inspect.signature(vector_stage_fn).parameters
-    for expanded_query in expanded_queries:
-        local_request = request.model_copy(update={"query": expanded_query})
 
-        if request.mode in ("bm25", "hybrid", "crossmodal") and local_request.query:
-            bm25_results, bm25_ranking, bm25_timer = await _bm25_stage(
+    # BM25 over expanded queries (cheap, local DB); aggregate results/ranking across expansions.
+    bm25_results_map: dict[str, SearchResult] = {}
+    bm25_ranking: list[str] = []
+    bm25_seen: set[str] = set()
+    if request.mode in ("bm25", "hybrid", "crossmodal") and original_query:
+        for expanded_query in expanded_queries:
+            local_request = request.model_copy(update={"query": expanded_query})
+            stage_results, stage_ranking, bm25_timer = await _bm25_stage(
                 session, local_request, target_container_ids, container_map, modality_allowlist
             )
             timers.append(bm25_timer)
-            diagnostics["bm25_hits"] = diagnostics.get("bm25_hits", 0) + len(bm25_results)
-        else:
-            bm25_results = []
-            bm25_ranking = []
+            diagnostics["bm25_hits"] = diagnostics.get("bm25_hits", 0) + len(stage_results)
+            for res in stage_results:
+                prev = bm25_results_map.get(res.chunk_id)
+                prev_score = prev.stage_scores.get("bm25", 0.0) if prev else float("-inf")
+                score = res.stage_scores.get("bm25", 0.0)
+                if prev is None or score > prev_score:
+                    bm25_results_map[res.chunk_id] = res
+            for cid in stage_ranking:
+                if cid in bm25_seen:
+                    continue
+                bm25_seen.add(cid)
+                bm25_ranking.append(cid)
 
-        if request.mode in ("semantic", "hybrid", "crossmodal"):
-            if request.query_image_base64 and precomputed_image_vector is None:
-                # compute once for image queries
-                try:
-                    precomputed_image_vector = (await embedding_client.embed_image([base64.b64decode(request.query_image_base64)]))[0]
-                except Exception as exc:  # pragma: no cover - runtime guard
-                    LOGGER.error("embedding_failed", exc_info=exc)
-                    issues.append("VECTOR_DOWN")
-                    precomputed_image_vector = None
-            if vector_supports_query:
-                vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await vector_stage_fn(
-                    session,
-                    local_request,
-                    target_container_ids,
-                    container_map,
-                    modality_allowlist,
-                    query_vector=precomputed_image_vector,
-                )
-            else:
-                vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await vector_stage_fn(
-                    session,
-                    local_request,
-                    target_container_ids,
-                    container_map,
-                    modality_allowlist,
-                )
-            timers.extend([embed_timer, vector_timer])
-            diagnostics["vector_hits"] = diagnostics.get("vector_hits", 0) + len(vector_results)
-            issues.extend(embed_issues)
-        else:
-            vector_results = []
-            vector_ranking = []
+    bm25_results = list(bm25_results_map.values())
 
-        # Fuse per expanded query.
-        if request.mode == "semantic":
-            combined = vector_results
-        elif request.mode == "bm25":
-            combined = bm25_results
-        elif request.mode in ("hybrid", "crossmodal"):
-            fusion_timer = stage_timer("fusion")
-            fusion_scores = reciprocal_rank_fusion([bm25_ranking, vector_ranking])
-            tmp: dict[str, SearchResult] = {res.chunk_id: res for res in bm25_results + vector_results}
-            for chunk_id, result in tmp.items():
-                if chunk_id in fusion_scores:
-                    result.score = fusion_scores[chunk_id]
-                    result.stage_scores["fusion"] = fusion_scores[chunk_id]
-            combined = sorted(tmp.values(), key=lambda r: r.score, reverse=True)[: local_request.k]
-            fusion_timer.stop()
-            timers.append(fusion_timer)
-        else:
-            combined = bm25_results
+    # Vector stage once (network + Qdrant); avoid repeating across query expansions.
+    vector_results: List[SearchResult] = []
+    vector_ranking: List[str] = []
+    if request.mode in ("semantic", "hybrid", "crossmodal"):
+        vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await _vector_stage(
+            session,
+            request,
+            target_container_ids,
+            container_map,
+            modality_allowlist,
+        )
+        timers.extend([embed_timer, vector_timer])
+        diagnostics["vector_hits"] = len(vector_results)
+        issues.extend(embed_issues)
 
-        for res in combined:
-            # Keep highest score per chunk across expansions
-            prev = aggregate_results.get(res.chunk_id)
-            if prev is None or res.score > prev.score:
-                aggregate_results[res.chunk_id] = res
-
-    final_results = list(aggregate_results.values())
+    # Fuse once (not per-expanded-query) to keep latency bounded.
+    if request.mode == "semantic":
+        final_results = vector_results
+    elif request.mode == "bm25":
+        final_results = bm25_results
+    elif request.mode in ("hybrid", "crossmodal"):
+        fusion_timer = stage_timer("fusion")
+        fusion_scores = reciprocal_rank_fusion([bm25_ranking, vector_ranking])
+        tmp: dict[str, SearchResult] = {res.chunk_id: res for res in bm25_results + vector_results}
+        for chunk_id, result in tmp.items():
+            if chunk_id in fusion_scores:
+                result.score = fusion_scores[chunk_id]
+                result.stage_scores["fusion"] = fusion_scores[chunk_id]
+        final_results = sorted(tmp.values(), key=lambda r: r.score, reverse=True)[: request.k]
+        fusion_timer.stop()
+        timers.append(fusion_timer)
+    else:
+        final_results = bm25_results
 
     for res in final_results:
-        decay = freshness_lambdas.get(res.container_id) or 0.0
+        try:
+            container_hex = UUID(res.container_id).hex
+        except Exception:
+            container_hex = res.container_id
+        decay = freshness_lambdas.get(container_hex) or 0.0
         _apply_freshness(res, decay)
     final_results = _dedup_results(final_results)
 
@@ -602,8 +584,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     scored_results.sort(key=lambda x: x[1], reverse=True)
     final_results = [res for res, _score in scored_results[: request.k]]
     pseudo_timer.stop()
-    timings = summarize_timings(timers + [pseudo_timer])
-    timings["expand_ms"] = expand_timer.duration_ms
+    timers.append(pseudo_timer)
 
     if rerank_enabled and not request.query and request.query_image_base64:
         diagnostics["rerank_applied"] = False

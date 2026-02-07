@@ -56,6 +56,14 @@ class Settings(BaseSettings):
         default=True,
         description="When true, admin refresh/export jobs are marked done immediately (dev/test convenience)",
     )
+    agent_tracking_min_interval_seconds: int = Field(
+        default=30,
+        description="Minimum interval between agent last_active updates (reduces write load).",
+    )
+    auto_migrate: bool = Field(
+        default=True,
+        description="When true, the API attempts to run Postgres migrations on startup (serialized via advisory lock).",
+    )
 
     @property
     def async_postgres_dsn(self) -> str:

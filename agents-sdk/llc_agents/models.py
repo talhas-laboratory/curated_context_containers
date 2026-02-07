@@ -134,7 +134,18 @@ class ContainerLifecycleResponse(BaseModel):
     issues: Optional[list[str]] = None
 
 
+class SystemStatusResponse(BaseModel):
+    """System health + dependency status (best-effort /v1/system/status)."""
 
+    version: str = "v1"
+    request_id: str
+    status: str  # "ok" | "degraded"
+    required_ok: bool
+    checks: dict[str, bool]
+    errors: Optional[dict[str, str]] = None
+    migrations: Optional[dict[str, Any]] = None
+    issues: Optional[list[str]] = None
+ 
 
 
 

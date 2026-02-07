@@ -66,6 +66,19 @@ export function resetJobFixtures() {
 resetJobFixtures();
 
 export const handlers = [
+  http.get('*/v1/system/status', async () => {
+    return HttpResponse.json({
+      version: 'v1',
+      request_id: 'req-system',
+      status: 'ok',
+      required_ok: true,
+      checks: { postgres: true, qdrant: true, minio: true, neo4j: true },
+      errors: {},
+      migrations: null,
+      issues: [],
+    });
+  }),
+
   http.post('*/v1/containers/create', async ({ request }) => {
     const body = (await request.json()) as { name?: string };
     if (!body.name) {

@@ -8,6 +8,18 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 
 metrics_router = APIRouter()
 
+MIGRATIONS_TOTAL = Counter(
+    "llc_migrations_total",
+    "Total migration attempts",
+    labelnames=("subsystem", "status"),
+)
+MIGRATION_DURATION = Histogram(
+    "llc_migration_duration_seconds",
+    "Migration duration per subsystem",
+    labelnames=("subsystem",),
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30),
+)
+
 REQUEST_COUNTER = Counter(
     "llc_search_requests_total",
     "Total search requests",
@@ -66,6 +78,14 @@ def observe_ingest_chunks(container_id: str, modality: str, count: int) -> None:
 def observe_dedup_hits(container_id: str, threshold: float, count: int) -> None:
     """Record semantic deduplication metrics."""
     DEDUP_HITS.labels(container=container_id, threshold=str(threshold)).inc(count)
+
+
+def observe_migration(subsystem: str, ok: bool, duration_ms: int | None = None) -> None:
+    """Record migration attempt metrics."""
+    status = "ok" if ok else "failed"
+    MIGRATIONS_TOTAL.labels(subsystem=subsystem, status=status).inc()
+    if duration_ms is not None:
+        MIGRATION_DURATION.labels(subsystem=subsystem).observe(max(duration_ms, 1) / 1000)
 
 
 @metrics_router.get("/metrics", tags=["metrics"])

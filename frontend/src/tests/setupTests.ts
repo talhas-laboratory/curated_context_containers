@@ -26,6 +26,7 @@ if (typeof window !== 'undefined') {
 // Polyfill clipboard used in modal copy action
 if (typeof navigator !== 'undefined' && !navigator.clipboard) {
   Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
     writable: true,
     value: {
       writeText: vi.fn().mockResolvedValue(undefined),

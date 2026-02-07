@@ -1,7 +1,7 @@
 # System Architecture — Local Latent Containers
 
 **Owner:** Silent Architect  
-**Last Updated:** 2026-02-01T12:15:00Z  
+**Last Updated:** 2026-02-07T16:08:09Z  
 **Status:** 🟡 In Progress — Baseline architecture defined, awaiting implementation
 
 ---
@@ -178,13 +178,17 @@ Local Latent Containers is a local-first retrieval system that exposes a determi
 - `llc_embedding_cache_hits_total{modality}` / `llc_embedding_cache_misses_total{modality}` — cache health
 - `llc_semantic_dedup_chunks_total{modality}` — semantic dedup drops
 - `llc_qdrant_upserts_total{modality}` — actual vectors written
+- `llc_migrations_total{subsystem,status}` — startup migration attempts (required + optional subsystems)
+- `llc_migration_duration_seconds{subsystem}` — migration duration per subsystem
 
 **Logs:** JSON Lines via `python-json-logger`. Fields: `timestamp`, `level`, `request_id`, `endpoint`, `status`, `latency_ms`, `issues`, `diagnostics_hash`, `agent`. Workers log `job_id`, `kind`, `status`, `duration_ms`, `error_code`.
 
 **Tracing:** Optional OpenTelemetry spans around embed/search/rerank; exported to stdout or OTLP collector when enabled. Trace IDs propagate via `X-Request-ID` header.
 
 **Health Checks:**
-- `/health/ready`: verifies DB + Qdrant connections
+- `/health`: liveness
+- `/ready`: readiness (returns 503 when any dependency is down; includes `checks`, `errors`, `migrations`)
+- `/v1/system/status`: status (returns 200 always; includes `checks`, `errors`, `migrations` for UI/agents)
 - `/metrics`: Prometheus scrape endpoint
 - Docker `HEALTHCHECK` for each service (psql ping, qdrant HTTP ping, MinIO mc admin)
 

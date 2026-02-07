@@ -90,7 +90,7 @@ export default function ChatSandboxPage() {
         {
           id: createId(),
           role: 'system',
-          content: 'Search failed. Check console logs.',
+          content: 'Search failed.',
           timestamp: Date.now(),
         },
       ]);
@@ -173,7 +173,7 @@ export default function ChatSandboxPage() {
         {
           id: createId(),
           role: 'system',
-          content: 'Select a container before uploading documents.',
+          content: 'Select a container to upload.',
           timestamp: Date.now(),
         },
       ]);
@@ -194,7 +194,7 @@ export default function ChatSandboxPage() {
         {
           id: createId(),
           role: 'system',
-          content: `Skipped non-PDF file(s): ${names}.`,
+          content: `Skipped non-PDF: ${names}.`,
           timestamp: Date.now(),
         },
       ]);
@@ -330,7 +330,6 @@ export default function ChatSandboxPage() {
     <GlassShell
       sidebar={sidebarContent}
       headline="Chat Sandbox"
-      description="Upload PDFs into a container, then ask calm, deterministic questions."
     >
       <div
         className="flex flex-col min-h-[600px] relative"
@@ -349,7 +348,7 @@ export default function ChatSandboxPage() {
                     ? 'Drop PDFs to upload'
                     : "This container doesn't accept PDFs"}
               </p>
-              <p className="text-xs text-ink-2/60 mt-2">PDF only for now.</p>
+              <p className="text-xs text-ink-2/60 mt-2">PDF only</p>
             </div>
           </div>
         )}
@@ -490,7 +489,7 @@ export default function ChatSandboxPage() {
               >
                 <input
                   className="w-full bg-transparent border-none focus:ring-0 px-2 text-ink-1 placeholder:text-ink-2/60 font-light text-lg"
-                  placeholder={activeContainerId ? "Ask a question..." : "Select a container first"}
+                  placeholder={activeContainerId ? "Ask" : "Select a container"}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   disabled={!activeContainerId}
