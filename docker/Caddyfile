@@ -1,4 +1,11 @@
+# Base URL routes to server-os project
 http://talhas-laboratory.tailefe062.ts.net {
+  encode zstd gzip
+  reverse_proxy server-os:3000
+}
+
+# Port 3001 routes to curated_context_containers project
+http://talhas-laboratory.tailefe062.ts.net:3001 {
   encode zstd gzip
 
   handle /api/sandbox/* {
