@@ -29,7 +29,8 @@ class EmbeddingClient:
         self.default_dim = settings.embedding_dims
         self.provider = getattr(settings, "embedder_provider", "nomic")
         self.nomic_api_key = settings.nomic_api_key
-        self.nomic_api_url = getattr(settings, "nomic_api_url", "https://api-atlas.nomic.ai/v1/embedding")
+        self.nomic_api_url = getattr(settings, "nomic_api_url", "https://api-atlas.nomic.ai/v1/embedding/text")
+        self.nomic_image_url = getattr(settings, "nomic_image_url", "https://api-atlas.nomic.ai/v1/embedding/image")
         self.nomic_image_model = getattr(settings, "nomic_image_model", DEFAULT_IMAGE_MODEL) or DEFAULT_IMAGE_MODEL
         self.google_api_key = getattr(settings, "google_api_key", "") or ""
         self.google_embed_model = getattr(settings, "google_embed_model", DEFAULT_GOOGLE_MODEL) or DEFAULT_GOOGLE_MODEL
@@ -134,7 +135,7 @@ class EmbeddingClient:
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
-                resp = await client.post(self.nomic_api_url, json=payload, headers=headers)
+                resp = await client.post(self.nomic_image_url, json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()
                 embeddings = data.get("embeddings") or data.get("data") or []
