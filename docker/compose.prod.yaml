@@ -174,8 +174,6 @@ services:
     environment:
       NEO4J_AUTH: neo4j/${LLC_NEO4J_PASSWORD:-localneo4j}
       LLC_NEO4J_PASSWORD: ${LLC_NEO4J_PASSWORD:-localneo4j}
-      NEO4J_metrics_prometheus_enabled: "true"
-      NEO4J_metrics_prometheus_endpoint: "0.0.0.0:2004"
     volumes:
       - /srv/llc/neo4j/data:/data
       - /srv/llc/neo4j/logs:/logs
