@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    environment:
+      LLC_MCP_TOKEN: ${LLC_MCP_TOKEN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - /srv/llc/caddy:/data
@@ -23,7 +25,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["alembic", "upgrade", "head"]
+    command: [ "alembic", "upgrade", "head" ]
 
   frontend:
     image: ${LLC_FRONTEND_IMAGE:?set LLC_FRONTEND_IMAGE}

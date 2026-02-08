@@ -6,7 +6,9 @@ http://talhas-laboratory.tailefe062.ts.net {
   }
 
   handle_path /api/* {
-    reverse_proxy mcp:7801
+    reverse_proxy mcp:7801 {
+      header_up Authorization "Bearer {$LLC_MCP_TOKEN}"
+    }
   }
 
   handle /storage/* {
