@@ -119,7 +119,7 @@ If the script fails or you need granular control:
 
 8. **Deploy Smoke Check**:
    ```bash
-   BASE_URL=http://talhas-laboratory.tailefe062.ts.net \
+   BASE_URL=http://talhas-laboratory.tailefe062.ts.net:3001 \\
    LLC_MCP_TOKEN=... \
    ./scripts/deploy_smoke.sh
    ```

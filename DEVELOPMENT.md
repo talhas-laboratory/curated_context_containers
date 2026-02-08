@@ -35,7 +35,7 @@ Best for: Using production data, collaboration
 
 2. **Cherry Studio automatically connects** to:
    ```
-   http://talhas-laboratory.tailefe062.ts.net/api/v1
+   http://talhas-laboratory.tailefe062.ts.net:3001/api/v1
    ```
 
 3. **To switch to local**, edit `~/.llc_mcp_config`:
@@ -116,7 +116,7 @@ curated_context_containers/
 - **Local**: Start Docker backend
 - **Remote**: Check server is accessible:
   ```bash
-  curl http://talhas-laboratory.tailefe062.ts.net/health
+  curl http://talhas-laboratory.tailefe062.ts.net:3001/health
   ```
 
 ### Data Mismatch

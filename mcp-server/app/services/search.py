@@ -414,13 +414,39 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
         issues = list(graph_resp.issues)
         diagnostics.update(graph_resp.diagnostics or {})
         diagnostics["graph_hits"] = len(graph_resp.nodes)
+        # Surface graph search as conventional "results" too.
+        # Several clients only look at `results/total_hits` and will incorrectly
+        # treat graph-mode responses as empty otherwise.
+        graph_results: list[SearchResult] = []
+        container_ref = primary_container or ""
+        for snip in graph_resp.snippets or []:
+            chunk_id = (snip or {}).get("chunk_id")
+            doc_id = (snip or {}).get("doc_id")
+            if not chunk_id or not doc_id:
+                continue
+            graph_results.append(
+                SearchResult(
+                    chunk_id=str(chunk_id),
+                    doc_id=str(doc_id),
+                    container_id=container_ref,
+                    container_name=container_ref or None,
+                    title=(snip or {}).get("title"),
+                    snippet=(snip or {}).get("text"),
+                    uri=(snip or {}).get("uri"),
+                    score=1.0,
+                    stage_scores={"graph": 1.0},
+                    modality=None,
+                    provenance={},
+                    meta={},
+                )
+            )
         timings_ms = graph_resp.timings_ms or {}
         return SearchResponse(
             request_id=request_id,
             query=request.query,
-            results=[],
-            total_hits=0,
-            returned=0,
+            results=graph_results,
+            total_hits=len(graph_results),
+            returned=len(graph_results),
             diagnostics=diagnostics,
             timings_ms=timings_ms,
             issues=issues or [],

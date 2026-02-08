@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 # Configuration
 # Hardcoded for reliability - environment variable passing to uv run is unreliable
-API_URL = "http://talhas-laboratory.tailefe062.ts.net/api/v1"
+API_URL = "http://talhas-laboratory.tailefe062.ts.net:3001/api/v1"
 TOKEN = "b14b66033a9d16fd82e059cfc43d2e2df9e3a620c764416235c155c6b97454d1"
 
 mcp = FastMCP("Latent Containers")

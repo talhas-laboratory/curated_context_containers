@@ -54,7 +54,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["alembic", "upgrade", "head"]
+    command: [ "alembic", "upgrade", "head" ]
 
   mcp:
     image: ${LLC_MCP_IMAGE:?set LLC_MCP_IMAGE}
@@ -84,7 +84,7 @@ services:
       LLC_GRAPH_NL2CYPHER_MODEL: ${LLC_GRAPH_NL2CYPHER_MODEL:-anthropic/claude-3-haiku}
       LLC_GRAPH_NL2CYPHER_TIMEOUT_MS: ${LLC_GRAPH_NL2CYPHER_TIMEOUT_MS:-8000}
       LLC_ADMIN_FASTPATH: "false"
-      MCP_CORS_ORIGINS: ${MCP_CORS_ORIGINS:-http://talhas-laboratory.tailefe062.ts.net}
+      MCP_CORS_ORIGINS: ${MCP_CORS_ORIGINS:-http://talhas-laboratory.tailefe062.ts.net:3001}
     volumes:
       - /srv/llc/manifests:/app/manifests:ro
     depends_on:
@@ -160,6 +160,10 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.11.0
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     volumes:
       - /srv/llc/qdrant:/qdrant/storage
     environment:

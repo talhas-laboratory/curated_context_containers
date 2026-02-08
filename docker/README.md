@@ -53,7 +53,7 @@ docker compose -f compose.dev.yaml down
 
 1. **SSH to server**:
    ```bash
-   ssh talha@talhas-laboratory.tailefe062.ts.net
+   ssh talha@talhas-laboratory.tailefe062.ts.net  # Access via Tailscale (project on :3001)
    ```
 
 2. **Copy template**:

@@ -27,7 +27,7 @@ const signingClient = new S3Client({
   endpoint:
     process.env.MINIO_PUBLIC_ENDPOINT ||
     // Used by the worker to download; override in prod/dev if needed.
-    'http://talhas-laboratory.tailefe062.ts.net/storage',
+    'http://talhas-laboratory.tailefe062.ts.net:3001/storage',
   credentials: {
     accessKeyId: process.env.MINIO_ACCESS_KEY || 'localminio',
     secretAccessKey: process.env.MINIO_SECRET_KEY || 'localminio123',

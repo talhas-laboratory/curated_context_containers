@@ -25,7 +25,7 @@ def _extract_storage_path(uri: str) -> tuple[str, str] | None:
     
     Returns (bucket, object_path) or None if not a storage URL.
     Example:
-      http://talhas-laboratory.tailefe062.ts.net/storage/sandbox/file.pdf?X-Amz-...
+      http://talhas-laboratory.tailefe062.ts.net:3001/storage/sandbox/file.pdf?X-Amz-...
       -> ("sandbox", "file.pdf")
     """
     parsed = urlparse(uri)

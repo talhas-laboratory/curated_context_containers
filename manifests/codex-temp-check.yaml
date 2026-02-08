@@ -1,0 +1,6 @@
+name: codex-temp-check
+theme: temp check via MCP server
+graph:
+  enabled: true
+modalities:
+  - text

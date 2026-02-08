@@ -1,9 +1,9 @@
 # Progress Tracker — Milestone Status Board
 
-**Last Updated:** 2026-02-01T12:15:00Z  
+**Last Updated:** 2026-02-08T20:50:00Z  
 **Current Phase:** 2 — Multimodal + Rerank (Complete; Graph RAG slice delivered)  
-**Overall Status:** 🟢 Phase 2 Complete (prep for Phase 3)  
-**Recent Update (2026-02-01):** Added container hierarchy (parent_id + policy inheritance), descendant-aware search, cascading delete, and nested UI display.
+**Overall Status:** 🟢 Phase 2 Complete (Maintenance: Fixed Vector Core)  
+**Recent Update (2026-02-08):** Stabilized Qdrant vector store with increased `ulimits` and restored semantic search by updating Nomic API endpoints.
 
 ---
 
