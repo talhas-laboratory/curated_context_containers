@@ -15,6 +15,26 @@ services:
       mcp:
         condition: service_healthy
 
+  # Optional local convenience proxy for accessing the UI via `http://<host>:3001`.
+  # This injects the server-side MCP token so the browser doesn't need to know it.
+  #
+  # Note: `docker/compose.observability.yaml` uses 3001 for Grafana by default.
+  # If you run both, override with `LLC_LAB_PROXY_PORT=3002` (or any free port).
+  lab-proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${LLC_LAB_PROXY_PORT:-3001}:80"
+    volumes:
+      - ./LabCaddyfile:/etc/caddy/Caddyfile:ro
+    environment:
+      LLC_MCP_TOKEN: ${LLC_MCP_TOKEN}
+    depends_on:
+      frontend:
+        condition: service_started
+      mcp:
+        condition: service_healthy
+
   frontend:
     image: ${LLC_FRONTEND_IMAGE:?set LLC_FRONTEND_IMAGE}
     restart: unless-stopped

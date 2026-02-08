@@ -79,6 +79,10 @@ docker compose -f docker/compose.home.yaml ps
 Open the UI:
 - `http://llc.<tailnet>`
 
+Optional local port:
+- `http://<host>:3001` (served by `lab-proxy`, which injects the server-side MCP token)
+- If you are also running Grafana (default `:3001`), set `LLC_LAB_PROXY_PORT=3002` (or any free port) and redeploy.
+
 ## 9) Agent MCP gateway (laptop)
 ```bash
 export LLC_BASE_URL="http://llc.<tailnet>/api"
