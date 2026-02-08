@@ -153,6 +153,10 @@ services:
   qdrant:
     image: qdrant/qdrant:v1.11.0
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     volumes:
       - /srv/llc/qdrant:/qdrant/storage
     environment:
