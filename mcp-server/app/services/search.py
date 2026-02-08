@@ -533,7 +533,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     bm25_results_map: dict[str, SearchResult] = {}
     bm25_ranking: list[str] = []
     bm25_seen: set[str] = set()
-    if request.mode in ("bm25", "hybrid", "crossmodal") and original_query:
+    if request.mode in ("bm25", "hybrid", "crossmodal", "hybrid_graph") and original_query:
         for expanded_query in expanded_queries:
             local_request = request.model_copy(update={"query": expanded_query})
             stage_results, stage_ranking, bm25_timer = await _bm25_stage(
@@ -558,7 +558,7 @@ async def search_response(session: AsyncSession, request: SearchRequest) -> Sear
     # Vector stage once (network + Qdrant); avoid repeating across query expansions.
     vector_results: List[SearchResult] = []
     vector_ranking: List[str] = []
-    if request.mode in ("semantic", "hybrid", "crossmodal"):
+    if request.mode in ("semantic", "hybrid", "crossmodal", "hybrid_graph"):
         vector_results, vector_ranking, embed_timer, vector_timer, embed_issues = await _vector_stage(
             session,
             request,
