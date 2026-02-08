@@ -579,7 +579,8 @@ async def graph_expand_from_chunks(
     WITH collect(DISTINCT n)[0..{k_limit}] AS seeds
     OPTIONAL MATCH path=(seed:LLCNode)-[rel:LLCEdge*1..{max_hops_safe}]-(m:LLCNode {{container_id:$cid}})
     WHERE seed IN seeds
-    WITH seeds + collect(DISTINCT m)[0..{k_limit}] AS nodes, collect(DISTINCT rel) AS rel_lists
+    WITH seeds, collect(DISTINCT m)[0..{k_limit}] AS neighbors, collect(DISTINCT rel) AS rel_lists
+    WITH seeds + neighbors AS nodes, rel_lists
     WITH nodes, reduce(all_rels = [], rel_list IN rel_lists | all_rels + rel_list)[0..{k_limit}] AS rels
     UNWIND nodes AS node
     WITH collect(DISTINCT node)[0..{k_limit}] AS nodes, rels
