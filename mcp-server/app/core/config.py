@@ -65,6 +65,10 @@ class Settings(BaseSettings):
         default=True,
         description="When true, the API attempts to run Postgres migrations on startup (serialized via advisory lock).",
     )
+    enable_document_fetch: bool = Field(
+        default=False,
+        description="When true, enables the /v1/documents/fetch endpoint and MCP tool for retrieving full document content.",
+    )
 
     @property
     def async_postgres_dsn(self) -> str:

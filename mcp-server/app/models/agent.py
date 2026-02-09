@@ -22,6 +22,7 @@ class CreateContainerRequest(BaseModel):
     visibility: str = Field(default="private", description="private, team, or public")
     collaboration_policy: str = Field(default="read-only", description="read-only or contribute")
     auto_refresh: bool = Field(default=False, description="Auto-update on manifest changes")
+    guiding_document_content: Optional[str] = Field(None, description="Optional guiding document content")
 
 
 class UpdateContainerRequest(BaseModel):

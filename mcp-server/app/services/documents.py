@@ -176,3 +176,55 @@ async def delete_document_response(
         timings_ms={"db_query": elapsed},
     )
 
+
+async def fetch_document_content(
+    session: AsyncSession, request
+) -> object:
+    """Fetch full document content from MinIO storage.
+    
+    Returns FetchDocumentResponse with base64-encoded content.
+    """
+    import base64
+    from app.models.documents import FetchDocumentResponse
+    
+    start = perf_counter()
+    container = await _resolve_container(session, request.container)
+    document_id = _maybe_uuid(request.document_id)
+    if not document_id:
+        raise ValueError("INVALID_DOCUMENT_ID")
+
+    doc_stmt = select(Document).where(
+        Document.id == document_id, Document.container_id == container.id
+    )
+    document = (await session.execute(doc_stmt)).scalar_one_or_none()
+    if not document:
+        raise ValueError("DOCUMENT_NOT_FOUND")
+
+    # Fetch from MinIO
+    try:
+        content_bytes, mime_type, filename = await minio_adapter.get_document_content(
+            str(container.id), str(document.id)
+        )
+    except FileNotFoundError as exc:
+        raise ValueError("DOCUMENT_CONTENT_NOT_FOUND") from exc
+    except Exception as exc:
+        LOGGER.error(
+            "minio_fetch_failed",
+            extra={"container_id": str(container.id), "document_id": str(document.id), "error": str(exc)},
+        )
+        raise ValueError("DOCUMENT_FETCH_FAILED") from exc
+
+    # Encode to base64 for JSON transport
+    content_base64 = base64.b64encode(content_bytes).decode("utf-8")
+    
+    elapsed = int((perf_counter() - start) * 1000)
+    return FetchDocumentResponse(
+        request_id=str(uuid4()),
+        document_id=str(document.id),
+        container_id=str(container.id),
+        content_base64=content_base64,
+        mime_type=mime_type,
+        filename=filename,
+        size_bytes=len(content_bytes),
+        timings_ms={"total_ms": elapsed},
+    )

@@ -4,6 +4,20 @@ This log tracks significant bugs, their root causes, and how they were resolved.
 
 ---
 
+## [2026-02-08] Hybrid Graph Search Failing (Logic & Syntax)
+
+- **Status:** ✅ Fixed
+- **Symptom:** Hybrid search with `mode="hybrid_graph"` returned 0 results or triggered a 500 Internal Server Error.
+- **Root Cause(s):**
+  1. **Retrieval Logic:** `app/services/search.py` was missing `hybrid_graph` in the list of modes allowed for initial BM25 and Vector retrieval stages. This prevented the graph expansion from having any "seed" chunks to work with.
+  2. **Cypher Syntax Error:** The graph expansion query in `app/services/graph.py` used implicit grouping for the `seeds` variable during an aggregation, specifically: `WITH seeds + collect(DISTINCT m)... AS nodes`. Recent Neo4j versions reject this.
+- **Resolution:**
+  - Updated `search.py` to include `hybrid_graph` in retrieval conditionals.
+  - Rewrote the Cypher query in `graph.py` to explicitly separate the `seeds` variable from the `collect` aggregation via a multi-step `WITH` clause.
+- **Verification:** Verified via `curl` that Hybrid Graph searches now return both text results and expanded graph context (nodes/edges).
+
+---
+
 ## [2026-02-08] Qdrant Crashing with "Too Many Open Files"
 
 - **Status:** ✅ Fixed

@@ -31,6 +31,7 @@ export default function ContainersPage() {
     embedder: 'google-gemma3-text',
     embedder_version: '1.0.0',
     dims: 768,
+    guiding_document_content: '',
   });
 
   const { data, isLoading, isError, refetch } = useListContainers(
@@ -70,6 +71,7 @@ export default function ContainersPage() {
       modalities: form.modalities?.length ? form.modalities : ['text'],
       embedder: form.embedder?.trim() || undefined,
       embedder_version: form.embedder_version?.trim() || undefined,
+      guiding_document_content: form.guiding_document_content?.trim() || undefined,
     };
 
     try {
@@ -84,6 +86,7 @@ export default function ContainersPage() {
         mission_context: '',
         modalities: ['text', 'pdf', 'image'],
         auto_refresh: false,
+        guiding_document_content: '',
       }));
 
       if (response.container_id) {
@@ -173,6 +176,16 @@ export default function ContainersPage() {
             <div className="mt-auto pt-4 border-t border-line-1/30 flex items-center justify-between text-xs text-ink-2 font-mono">
               <span>{container.stats?.document_count ?? 0} docs</span>
               <span>{container.stats?.chunk_count ?? 0} chunks</span>
+              {container.guiding_document_id && (
+                <span title="Has guiding document" className="flex items-center gap-1 text-blue-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                  </svg>
+                  Guide
+                </span>
+              )}
             </div>
 
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400/0 via-blue-400/40 to-purple-400/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
@@ -265,6 +278,17 @@ export default function ContainersPage() {
                   onChange={(e) => setForm((prev) => ({ ...prev, mission_context: e.target.value }))}
                   className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm text-ink-1 placeholder:text-ink-2/70 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-300/70 min-h-[64px]"
                 />
+              </label>
+
+              <label className="space-y-2 lg:col-span-3">
+                <span className="text-xs uppercase tracking-wide text-ink-2">Guiding Document</span>
+                <textarea
+                  value={form.guiding_document_content || ''}
+                  onChange={(e) => setForm((prev) => ({ ...prev, guiding_document_content: e.target.value }))}
+                  placeholder="Paste context, instructions, or a README for this container..."
+                  className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm text-ink-1 placeholder:text-ink-2/70 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-300/70 min-h-[120px] font-mono text-xs"
+                />
+                <p className="text-[10px] text-ink-2 text-right">Markdown supported</p>
               </label>
 
               <div className="space-y-2">

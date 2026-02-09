@@ -101,6 +101,72 @@ class MinioAdapter:
         except Exception as exc:  # pragma: no cover - requires MinIO
             LOGGER.warning("minio_list_failed prefix=%s error=%s", prefix, exc)
 
+    async def get_document_content(
+        self, container_id: str, document_id: str
+    ) -> tuple[bytes, str, str]:
+        """Fetch raw document content from MinIO.
+        
+        Returns:
+            tuple of (content_bytes, mime_type, filename)
+        
+        Raises:
+            Exception if document not found or fetch fails
+        """
+        if not container_id or not document_id:
+            raise ValueError("container_id and document_id are required")
+        
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, self._get_document_content_sync, container_id, document_id
+        )
+
+    def _get_document_content_sync(
+        self, container_id: str, document_id: str
+    ) -> tuple[bytes, str, str]:
+        """Synchronous implementation of document content fetch."""
+        # Try common document patterns
+        prefix = f"{container_id}/{document_id}"
+        
+        # Try direct file first (most common for text/PDF originals)
+        candidates = [
+            f"{prefix}.pdf",
+            f"{prefix}.txt",
+            f"{prefix}.json",
+            f"{prefix}",  # No extension
+        ]
+        
+        for object_name in candidates:
+            try:
+                response = self.client.get_object(self.bucket, object_name)
+                content = response.read()
+                response.close()
+                response.release_conn()
+                
+                # Infer MIME type from extension
+                mime_type = "application/octet-stream"
+                if object_name.endswith(".pdf"):
+                    mime_type = "application/pdf"
+                elif object_name.endswith(".txt"):
+                    mime_type = "text/plain"
+                elif object_name.endswith(".json"):
+                    mime_type = "application/json"
+                
+                filename = object_name.split("/")[-1]
+                return content, mime_type, filename
+                
+            except S3Error as exc:
+                if exc.code not in {"NoSuchKey", "NoSuchObject"}:
+                    LOGGER.warning("minio_get_failed object=%s error=%s", object_name, exc)
+                continue
+            except Exception as exc:
+                LOGGER.warning("minio_get_failed object=%s error=%s", object_name, exc)
+                continue
+        
+        # If no direct file found, raise error
+        raise FileNotFoundError(
+            f"No document content found for container={container_id} document={document_id}"
+        )
+
 
 minio_adapter = MinioAdapter()
 

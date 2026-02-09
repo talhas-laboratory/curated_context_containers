@@ -9,6 +9,8 @@ import type {
   DeleteDocumentResponse,
   ListDocumentsRequest,
   ListDocumentsResponse,
+  FetchDocumentRequest,
+  FetchDocumentResponse,
 } from '../types';
 
 export function useContainerDocuments(
@@ -47,6 +49,25 @@ export function useDeleteDocument(onSuccess?: () => void, onError?: (error: MCPE
     onError: (error) => {
       onError?.(error);
     },
+  });
+}
+
+export function useDocumentContent(containerId: string | undefined, documentId: string | undefined) {
+  return useQuery<FetchDocumentResponse, MCPError>({
+    queryKey: ['document-content', containerId, documentId],
+    queryFn: async () => {
+      if (!containerId || !documentId) {
+        throw new Error('container and document_id required');
+      }
+      const payload: FetchDocumentRequest = {
+        container: containerId,
+        document_id: documentId,
+      };
+      const response = await post<FetchDocumentResponse>('/v1/documents/fetch', payload);
+      return response;
+    },
+    enabled: !!containerId && !!documentId,
+    staleTime: 60 * 1000, // 1 minute
   });
 }
 

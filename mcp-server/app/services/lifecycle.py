@@ -79,6 +79,49 @@ async def create_container(
     await session.commit()
     await session.refresh(container)
 
+    # Handle guiding document if provided
+    if request.guiding_document_content:
+        import hashlib
+        # Create guiding document
+        content = request.guiding_document_content.encode("utf-8")
+        doc_hash = hashlib.sha256(content).hexdigest()
+        
+        guiding_doc = Document(
+            id=uuid4(),
+            container_id=container.id,
+            uri=f"guiding-doc://{container.name}",
+            mime="text/markdown",
+            hash=doc_hash,
+            title="Guiding Document",
+            meta={"is_guiding_document": True},
+            state="active",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+        session.add(guiding_doc)
+        
+        # Create initial chunk for immediate availability
+        chunk = Chunk(
+            id=uuid4(),
+            container_id=container.id,
+            doc_id=guiding_doc.id,
+            modality="text",
+            text=request.guiding_document_content,
+            provenance={
+                "source": "manual",
+                "ingested_at": datetime.utcnow().isoformat(),
+                "pipeline": "text"
+            },
+            embedding_version=request.embedder_version,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+        session.add(chunk)
+        
+        # Link to container
+        container.guiding_document_id = guiding_doc.id
+        await session.commit()
+
     return container
 
 

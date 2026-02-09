@@ -39,10 +39,11 @@ def _to_summary(model: Container) -> ContainerSummary:
         stats=_stats_from_dict(model.stats),
         created_at=model.created_at,
         updated_at=model.updated_at,
+        guiding_document_id=str(model.guiding_document_id) if model.guiding_document_id else None,
     )
 
 
-def _to_detail(model: Container) -> ContainerDetail:
+def _to_detail(model: Container, guiding_doc: dict | None = None) -> ContainerDetail:
     summary = _to_summary(model)
     detail = ContainerDetail(
         **summary.model_dump(),
@@ -53,6 +54,7 @@ def _to_detail(model: Container) -> ContainerDetail:
         policy=model.policy or {},
         graph_url=model.graph_url,
         graph_schema=model.graph_schema or {},
+        guiding_document=guiding_doc,
     )
     manifest = manifests.load_manifest(model.name) or manifests.load_manifest(str(model.id))
     if manifest:

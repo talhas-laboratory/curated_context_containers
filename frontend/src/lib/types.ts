@@ -15,6 +15,7 @@ export interface ContainerSummary {
     size_mb?: number;
     last_ingest?: string;
   };
+  guiding_document_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -29,6 +30,12 @@ export interface ContainerDetail extends ContainerSummary {
   observability?: {
     diagnostics_enabled?: boolean;
     freshness_lambda?: number;
+  };
+  guiding_document?: {
+    id: string;
+    title?: string;
+    hash?: string;
+    created_at?: string;
   };
 }
 
@@ -141,6 +148,7 @@ export interface CreateContainerRequest {
   visibility?: 'private' | 'team' | 'public';
   collaboration_policy?: 'read-only' | 'contribute';
   auto_refresh?: boolean;
+  guiding_document_content?: string;
 }
 
 export interface DeleteContainerRequest {
@@ -286,4 +294,18 @@ export interface AddToContainerResponse {
   jobs: JobSummary[];
   request_id?: string;
   issues?: string[];
+}
+
+export interface FetchDocumentRequest {
+  container: string;
+  document_id: string;
+}
+
+export interface FetchDocumentResponse {
+  request_id: string;
+  document_id: string;
+  content: string;
+  content_type: string;
+  encoding: string;
+  timings_ms?: Record<string, number>;
 }

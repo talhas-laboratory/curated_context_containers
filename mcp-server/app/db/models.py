@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy import ARRAY, JSON, Boolean, Enum, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import ENUM, INT4RANGE, TSRANGE, TSVECTOR, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from .base import Base
@@ -33,6 +33,10 @@ class Container(Base):
     graph_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     graph_url: Mapped[str | None]
     graph_schema: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=dict)
+    guiding_document_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    guiding_document: Mapped["Document"] = relationship("Document", foreign_keys=[guiding_document_id], lazy="noload")
     created_by_agent: Mapped[str | None]
     mission_context: Mapped[str | None]
     auto_refresh: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -139,10 +139,10 @@ export default function ContainerSearchPage() {
   const results = graphSearchParams ? [] : searchData?.results || [];
   const graphContext = graphSearchParams
     ? {
-        nodes: graphSearchData?.nodes || [],
-        edges: graphSearchData?.edges || [],
-        snippets: graphSearchData?.snippets || [],
-      }
+      nodes: graphSearchData?.nodes || [],
+      edges: graphSearchData?.edges || [],
+      snippets: graphSearchData?.snippets || [],
+    }
     : searchData?.graph_context;
   const diagnostics = graphSearchParams ? graphSearchData?.diagnostics : searchData?.diagnostics;
   const timings = graphSearchParams ? graphSearchData?.timings_ms : searchData?.timings_ms;
@@ -347,13 +347,34 @@ export default function ContainerSearchPage() {
   const sidebarContent = (
     <div className="space-y-8">
       <GlassCard className="space-y-4">
-        <h2 className="font-serif text-xl italic text-ink-1">
-          {containerLoading ? 'Loading…' : containerDetail?.container.name || '—'}
-        </h2>
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="font-serif text-xl italic text-ink-1 break-all">
+            {containerLoading ? 'Loading…' : containerDetail?.container.name || '—'}
+          </h2>
+          {containerDetail?.container.guiding_document && (
+            <Link
+              href={`/containers/${containerId}/guiding-document`}
+              title="View Guiding Document"
+              className="group relative flex-shrink-0 text-ink-2 hover:text-blue-600 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 border border-white"></span>
+              </span>
+            </Link>
+          )}
+        </div>
         <p className="text-sm text-ink-2 font-light">
           {containerError ? 'Error loading container' : containerDetail?.container.theme}
         </p>
-        
+
         <div className="pt-4 space-y-3 border-t border-line-1/50">
           <div className="flex items-center justify-between text-sm">
             <span className="text-ink-2">Documents</span>
@@ -419,11 +440,10 @@ export default function ContainerSearchPage() {
                       onClick={() => toggleContainerScope(child.id)}
                       aria-pressed={inScope}
                       aria-label={`${inScope ? 'Remove' : 'Add'} ${child.name} ${inScope ? 'from' : 'to'} search scope`}
-                      className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.08em] transition ${
-                        inScope
+                      className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.08em] transition ${inScope
                           ? 'border-ink-1 bg-white text-ink-1'
                           : 'border-line-2 text-ink-2 hover:border-ink-1 hover:text-ink-1'
-                      }`}
+                        }`}
                     >
                       {inScope ? 'In scope' : 'Add to scope'}
                     </button>
@@ -540,207 +560,207 @@ export default function ContainerSearchPage() {
         {/* Search Input Area */}
         <div className="relative max-w-3xl mx-auto w-full z-20">
           <form onSubmit={handleSubmit}>
-             <GlassInput
-               ref={searchInputRef}
-               value={query}
-               onChange={(e) => setQuery(e.target.value)}
-               onKeyDown={(e) => {
-                 if (e.key === 'Enter') {
-                   e.preventDefault();
-                   handleSubmit();
-                 }
-               }}
-               placeholder={
-                 mode === 'crossmodal'
-                   ? 'Image description (optional)'
-                   : `Search ${containerDetail?.container.name ?? 'container'}`
-               }
-               className="w-full text-lg"
-               data-testid="search-input"
-               icon={
+            <GlassInput
+              ref={searchInputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              placeholder={
+                mode === 'crossmodal'
+                  ? 'Image description (optional)'
+                  : `Search ${containerDetail?.container.name ?? 'container'}`
+              }
+              className="w-full text-lg"
+              data-testid="search-input"
+              icon={
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-               }
-             />
-             <button type="submit" data-testid="search-submit" className="sr-only">
-               Search
-             </button>
+              }
+            />
+            <button type="submit" data-testid="search-submit" className="sr-only">
+              Search
+            </button>
           </form>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-           <div className="flex-1 space-y-6">
-              {/* Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-4 px-2">
-                <GraphModeToggle options={MODES} value={mode} onChange={(val) => setMode(val as typeof mode)} />
+          <div className="flex-1 space-y-6">
+            {/* Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-2">
+              <GraphModeToggle options={MODES} value={mode} onChange={(val) => setMode(val as typeof mode)} />
 
-                <div className="flex items-center gap-4">
-                   <MultiContainerSelector
-                     containers={allContainers?.containers || []}
-                     selectedIds={selectedContainers}
-                     onChange={setSelectedContainers}
-                     busy={loadingContainers}
-                     error={containersError ? 'Failed to load containers' : null}
-                   />
-                   <div className="flex items-center gap-2 text-sm text-ink-2">
-                     <input
-                       type="file"
-                       accept="image/*"
-                       id="image-query"
-                       className="hidden"
-                       onChange={async (e) => {
-                         const file = e.target.files?.[0];
-                         if (!file) return;
-                         const buf = await file.arrayBuffer();
-                         const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-                         setQueryImage(base64);
-                         setMode('crossmodal');
-                       }}
-                     />
-                     <label
-                       htmlFor="image-query"
-                       className="cursor-pointer rounded-full border border-line-2 px-3 py-1.5 bg-white/60 hover:border-ink-1 hover:text-ink-1 transition"
-                     >
-                       {queryImage ? 'Replace image query' : 'Add image query'}
-                     </label>
-                     {queryImage && (
-                       <button
-                         type="button"
-                         onClick={() => setQueryImage(null)}
-                         className="rounded-full border border-line-2 px-2 py-1 text-xs uppercase tracking-[0.08em] text-ink-2 hover:border-ink-1 hover:text-ink-1 transition"
-                       >
-                         Clear
-                       </button>
-                     )}
-                   </div>
-                   <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer select-none">
-                     <input 
-                       type="checkbox" 
-                       checked={diagnosticsEnabled} 
-                       onChange={(e) => setDiagnosticsEnabled(e.target.checked)}
-                       className="rounded border-ink-2/30 text-ink-1 focus:ring-ink-1/20"
-                     />
-                     Diagnostics
-                   </label>
-                   
+              <div className="flex items-center gap-4">
+                <MultiContainerSelector
+                  containers={allContainers?.containers || []}
+                  selectedIds={selectedContainers}
+                  onChange={setSelectedContainers}
+                  busy={loadingContainers}
+                  error={containersError ? 'Failed to load containers' : null}
+                />
+                <div className="flex items-center gap-2 text-sm text-ink-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="image-query"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const buf = await file.arrayBuffer();
+                      const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                      setQueryImage(base64);
+                      setMode('crossmodal');
+                    }}
+                  />
+                  <label
+                    htmlFor="image-query"
+                    className="cursor-pointer rounded-full border border-line-2 px-3 py-1.5 bg-white/60 hover:border-ink-1 hover:text-ink-1 transition"
+                  >
+                    {queryImage ? 'Replace image query' : 'Add image query'}
+                  </label>
+                  {queryImage && (
+                    <button
+                      type="button"
+                      onClick={() => setQueryImage(null)}
+                      className="rounded-full border border-line-2 px-2 py-1 text-xs uppercase tracking-[0.08em] text-ink-2 hover:border-ink-1 hover:text-ink-1 transition"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={diagnosticsEnabled}
+                    onChange={(e) => setDiagnosticsEnabled(e.target.checked)}
+                    className="rounded border-ink-2/30 text-ink-1 focus:ring-ink-1/20"
+                  />
+                  Diagnostics
+                </label>
+
+                <div className="flex items-center gap-2 text-sm text-ink-2 bg-white/40 rounded-full px-3 py-1 border border-white/30">
+                  <span>k=</span>
+                  <select
+                    value={k}
+                    onChange={(e) => setK(Number(e.target.value))}
+                    className="bg-transparent border-none p-0 focus:ring-0 text-ink-1 font-mono cursor-pointer"
+                  >
+                    {[5, 10, 20, 30, 40, 50].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+                {(mode === 'graph' || mode === 'hybrid_graph') && (
                   <div className="flex items-center gap-2 text-sm text-ink-2 bg-white/40 rounded-full px-3 py-1 border border-white/30">
-                    <span>k=</span>
+                    <span>hops</span>
                     <select
-                      value={k}
-                      onChange={(e) => setK(Number(e.target.value))}
+                      value={maxHops}
+                      onChange={(e) => setMaxHops(Number(e.target.value))}
                       className="bg-transparent border-none p-0 focus:ring-0 text-ink-1 font-mono cursor-pointer"
                     >
-                      {[5, 10, 20, 30, 40, 50].map((n) => (
+                      {[1, 2, 3].map((n) => (
                         <option key={n} value={n}>{n}</option>
                       ))}
                     </select>
                   </div>
-                  {(mode === 'graph' || mode === 'hybrid_graph') && (
-                    <div className="flex items-center gap-2 text-sm text-ink-2 bg-white/40 rounded-full px-3 py-1 border border-white/30">
-                      <span>hops</span>
-                      <select
-                        value={maxHops}
-                        onChange={(e) => setMaxHops(Number(e.target.value))}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-ink-1 font-mono cursor-pointer"
-                      >
-                        {[1, 2, 3].map((n) => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-              <GraphQueryPanel
-                mode={mode}
-                rawCypherEnabled={rawCypherEnabled}
-                rawCypher={rawCypher}
-                onToggleRawCypher={(enabled) => {
-                  setRawCypherEnabled(enabled);
-                  if (!enabled) {
-                    setRawCypher('');
-                    setGraphSearchParams(null);
-                  }
-                }}
-                onChangeRawCypher={(val) => setRawCypher(val)}
-                onSubmit={() => handleSubmit()}
-              />
+            </div>
+            <GraphQueryPanel
+              mode={mode}
+              rawCypherEnabled={rawCypherEnabled}
+              rawCypher={rawCypher}
+              onToggleRawCypher={(enabled) => {
+                setRawCypherEnabled(enabled);
+                if (!enabled) {
+                  setRawCypher('');
+                  setGraphSearchParams(null);
+                }
+              }}
+              onChangeRawCypher={(val) => setRawCypher(val)}
+              onSubmit={() => handleSubmit()}
+            />
 
-              {/* Issues & Errors */}
-              {(issues.length > 0 || activeSearchError) && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-50/50 border border-red-100 rounded-xl p-4 text-sm"
-                  data-testid="search-error"
-                >
-                  {issues.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {issues.map((issue) => (
-                        <span key={issue} className="px-2 py-1 bg-white/60 rounded-md text-red-600 border border-red-200 text-xs font-mono">
-                          {issue}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {activeSearchError && (
-                    <p className="text-red-600">{activeSearchError.message || 'Search error'}</p>
-                  )}
-                </motion.div>
+            {/* Issues & Errors */}
+            {(issues.length > 0 || activeSearchError) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50/50 border border-red-100 rounded-xl p-4 text-sm"
+                data-testid="search-error"
+              >
+                {issues.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {issues.map((issue) => (
+                      <span key={issue} className="px-2 py-1 bg-white/60 rounded-md text-red-600 border border-red-200 text-xs font-mono">
+                        {issue}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {activeSearchError && (
+                  <p className="text-red-600">{activeSearchError.message || 'Search error'}</p>
+                )}
+              </motion.div>
+            )}
+
+            {/* Results List */}
+            <div className="space-y-4 min-h-[200px]">
+              {isLoading && (
+                <div className="text-center py-12 text-ink-2">
+                  <div className="w-8 h-8 border-2 border-ink-2/30 border-t-ink-2 rounded-full animate-spin mx-auto mb-3" />
+                  <p className="animate-pulse">Loading…</p>
+                </div>
               )}
 
-              {/* Results List */}
-              <div className="space-y-4 min-h-[200px]">
-                {isLoading && (
-                  <div className="text-center py-12 text-ink-2">
-                     <div className="w-8 h-8 border-2 border-ink-2/30 border-t-ink-2 rounded-full animate-spin mx-auto mb-3"/>
-                     <p className="animate-pulse">Loading…</p>
-                  </div>
-                )}
+              {showEmptyState && (
+                <div className="text-center py-12 bg-white/30 rounded-2xl border border-white/40" data-testid="search-status">
+                  <p className="text-ink-1 font-medium">No hits</p>
+                </div>
+              )}
 
-                {showEmptyState && (
-                  <div className="text-center py-12 bg-white/30 rounded-2xl border border-white/40" data-testid="search-status">
-                    <p className="text-ink-1 font-medium">No hits</p>
-                  </div>
-                )}
-
-                <AnimatePresence mode="popLayout">
-                  {results.map((result, idx) => (
-                    <motion.div
-                      key={result.chunk_id}
-                      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-                      animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                      exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
-                      transition={prefersReducedMotion ? { duration: 0 } : { delay: idx * 0.05 }}
-                    >
-                      <ResultItem
-                        result={result}
-                        diagnosticsVisible={diagnosticsEnabled}
-                        selected={idx === selectedIndex}
-                        onSelect={(res) => {
-                          setActiveResult(res);
-                          setSelectedIndex(idx);
-                        }}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-
-                {showGraphSection ? (
-                  <div className="space-y-3">
-                    <GraphDiagnosticsBar
-                      graphMs={graphMs}
-                      graphHits={graphHits}
-                      modeLabel={graphSearchParams ? (graphSearchParams.mode === 'cypher' ? 'cypher' : 'nl') : mode}
-                      issues={issues}
+              <AnimatePresence mode="popLayout">
+                {results.map((result, idx) => (
+                  <motion.div
+                    key={result.chunk_id}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+                    animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95 }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { delay: idx * 0.05 }}
+                  >
+                    <ResultItem
+                      result={result}
+                      diagnosticsVisible={diagnosticsEnabled}
+                      selected={idx === selectedIndex}
+                      onSelect={(res) => {
+                        setActiveResult(res);
+                        setSelectedIndex(idx);
+                      }}
                     />
-                    <GraphResultsTable nodes={graphNodes} edges={graphEdges} snippets={graphSnippets} maxHops={maxHops} />
-                  </div>
-                ) : null}
-              </div>
-           </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {showGraphSection ? (
+                <div className="space-y-3">
+                  <GraphDiagnosticsBar
+                    graphMs={graphMs}
+                    graphHits={graphHits}
+                    modeLabel={graphSearchParams ? (graphSearchParams.mode === 'cypher' ? 'cypher' : 'nl') : mode}
+                    issues={issues}
+                  />
+                  <GraphResultsTable nodes={graphNodes} edges={graphEdges} snippets={graphSnippets} maxHops={maxHops} />
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -781,9 +801,8 @@ export default function ContainerSearchPage() {
           ).map((option) => (
             <label
               key={option.value}
-              className={`block cursor-pointer rounded-xl border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-ink-1/30 ${
-                refreshStrategy === option.value ? 'border-ink-1 bg-white' : 'border-line-2 bg-white/70'
-              }`}
+              className={`block cursor-pointer rounded-xl border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-ink-1/30 ${refreshStrategy === option.value ? 'border-ink-1 bg-white' : 'border-line-2 bg-white/70'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <input
@@ -859,9 +878,8 @@ export default function ContainerSearchPage() {
           ).map((option) => (
             <label
               key={option.value}
-              className={`flex-1 cursor-pointer rounded-xl border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-ink-1/30 ${
-                exportFormat === option.value ? 'border-ink-1 bg-white' : 'border-line-2 bg-white/70'
-              }`}
+              className={`flex-1 cursor-pointer rounded-xl border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-ink-1/30 ${exportFormat === option.value ? 'border-ink-1 bg-white' : 'border-line-2 bg-white/70'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <input

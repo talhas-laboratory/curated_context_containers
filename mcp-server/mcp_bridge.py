@@ -126,5 +126,77 @@ def add_knowledge(container_name: str, text: str, title: str) -> str:
     except Exception as e:
         return f"Error adding knowledge: {str(e)}"
 
+@mcp.tool()
+def fetch_document(container_name: str, document_id: str) -> str:
+    """
+    Fetch the full content of a source document from a container.
+    
+    This tool retrieves the complete original document (PDF, text file, etc.)
+    rather than just semantic snippets. Useful for deep-dive research when
+    snippets don't provide enough context.
+    
+    Args:
+        container_name: The name of the container.
+        document_id: The UUID of the document to fetch.
+    
+    Returns:
+        A summary of the document with content preview, or error message.
+    """
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.post(
+                f"{API_URL}/documents/fetch",
+                headers=_headers(),
+                json={
+                    "container": container_name,
+                    "document_id": document_id
+                }
+            )
+            
+            # Check if feature is disabled
+            if resp.status_code == 404 and "disabled" in resp.text.lower():
+                return (
+                    "Document fetch feature is currently disabled. "
+                    "To enable, set LLC_ENABLE_DOCUMENT_FETCH=true in the server configuration."
+                )
+            
+            resp.raise_for_status()
+            data = resp.json()
+            
+            # Decode base64 content for preview
+            import base64
+            content_bytes = base64.b64decode(data["content_base64"])
+            
+            # Provide summary instead of dumping entire content
+            size_kb = data["size_bytes"] / 1024
+            mime = data["mime_type"]
+            filename = data["filename"]
+            
+            # Show preview for text content
+            preview = ""
+            if mime.startswith("text/"):
+                try:
+                    text_content = content_bytes.decode("utf-8")
+                    preview = f"\n\nContent Preview (first 500 chars):\n{text_content[:500]}..."
+                except Exception:
+                    preview = "\n\n(Binary content, preview not available)"
+            
+            return (
+                f"Document fetched successfully:\n"
+                f"- Filename: {filename}\n"
+                f"- Type: {mime}\n"
+                f"- Size: {size_kb:.2f} KB\n"
+                f"- Document ID: {data['document_id']}\n"
+                f"- Container ID: {data['container_id']}"
+                f"{preview}"
+            )
+            
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return f"Document not found: {e.response.text}"
+        return f"Error fetching document (HTTP {e.response.status_code}): {e.response.text}"
+    except Exception as e:
+        return f"Error fetching document: {str(e)}"
+
 if __name__ == "__main__":
     mcp.run()

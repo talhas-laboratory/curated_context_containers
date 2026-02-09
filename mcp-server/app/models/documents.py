@@ -52,6 +52,24 @@ class DeleteDocumentResponse(BaseModel):
     issues: List[str] = Field(default_factory=list)
 
 
+class FetchDocumentRequest(BaseModel):
+    container: str = Field(description="Container UUID or name")
+    document_id: str = Field(description="Document UUID")
+
+
+class FetchDocumentResponse(BaseModel):
+    version: str = "v1"
+    request_id: str
+    document_id: str
+    container_id: str
+    content_base64: str = Field(description="Base64-encoded document content")
+    mime_type: str
+    filename: str
+    size_bytes: int
+    timings_ms: dict = Field(default_factory=dict)
+    issues: List[str] = Field(default_factory=list)
+
+
 
 
 

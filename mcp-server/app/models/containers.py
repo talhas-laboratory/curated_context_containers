@@ -22,6 +22,7 @@ class ContainerSummary(BaseModel):
     modalities: List[str] = Field(default_factory=list)
     state: str = "active"
     graph_enabled: bool = False
+    guiding_document_id: Optional[str] = None
     stats: ContainerStats = Field(default_factory=ContainerStats)
     created_at: datetime
     updated_at: datetime
@@ -35,6 +36,7 @@ class ContainerDetail(ContainerSummary):
     policy: dict = Field(default_factory=dict)
     graph_url: Optional[str] = None
     graph_schema: dict = Field(default_factory=dict)
+    guiding_document: Optional[dict] = Field(None, description="Guiding document details")
 
 
 class ListContainersResponse(BaseModel):
@@ -92,5 +94,21 @@ class ContainersAddResponse(BaseModel):
     version: str = "v1"
     request_id: str
     jobs: List[JobSummary]
+    timings_ms: dict = Field(default_factory=dict)
+    issues: List[str] = Field(default_factory=list)
+
+
+class AttachGuidingDocumentRequest(BaseModel):
+    container: str = Field(description="Container ID or name")
+    content: str = Field(description="Text content of the guiding document")
+    title: str = Field(default="Guiding Document", description="Title for the document")
+
+
+class AttachGuidingDocumentResponse(BaseModel):
+    version: str = "v1"
+    request_id: str
+    document_id: str
+    container_id: str
+    message: str
     timings_ms: dict = Field(default_factory=dict)
     issues: List[str] = Field(default_factory=list)
